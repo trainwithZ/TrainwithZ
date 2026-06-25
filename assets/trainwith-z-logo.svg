@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 180" role="img" aria-label="TrainWith Z logo">
+  <defs>
+    <linearGradient id="logoZ" x1="60" y1="48" x2="150" y2="132" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7CC8FF"/>
+      <stop offset=".5" stop-color="#147BFF"/>
+      <stop offset="1" stop-color="#7CC8FF"/>
+    </linearGradient>
+    <linearGradient id="logoPulse" x1="34" y1="91" x2="174" y2="91" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#147BFF" stop-opacity="0"/>
+      <stop offset=".22" stop-color="#7CC8FF"/>
+      <stop offset=".5" stop-color="#E6F2FF"/>
+      <stop offset=".78" stop-color="#7CC8FF"/>
+      <stop offset="1" stop-color="#147BFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="720" height="180" rx="36" fill="#05070B"/>
+  <g transform="translate(26 18)">
+    <path d="M40 38a72 72 0 0 1 104-4" fill="none" stroke="#147BFF" stroke-width="5" stroke-linecap="round" opacity=".82"/>
+    <path d="M148 51a72 72 0 0 1-109 88" fill="none" stroke="#147BFF" stroke-width="5" stroke-linecap="round" opacity=".48"/>
+    <circle cx="152" cy="39" r="6" fill="#7CC8FF"/>
+    <circle cx="33" cy="133" r="6" fill="#7CC8FF"/>
+    <path d="M55 48h82l-38 36h45l-31 27H72l38-36H44l11-27Z" fill="url(#logoZ)"/>
+    <path d="M58 138h77l11-27H67l-19 27h10Z" fill="url(#logoZ)"/>
+    <path d="M20 94h45l8-16 12 48 12-65 13 49 9-16h54" fill="none" stroke="url(#logoPulse)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="215" y="111" fill="#E6F2FF" font-size="54" font-family="Inter, Segoe UI, Arial, sans-serif" font-weight="650">TrainWith</text>
+  <text x="535" y="111" fill="#147BFF" font-size="58" font-family="Inter, Segoe UI, Arial, sans-serif" font-weight="760">Z</text>
+</svg>

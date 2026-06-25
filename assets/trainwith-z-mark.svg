@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="TrainWith Z mark">
+  <defs>
+    <linearGradient id="zFill" x1="60" y1="74" x2="190" y2="176" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7CC8FF"/>
+      <stop offset=".45" stop-color="#147BFF"/>
+      <stop offset="1" stop-color="#7CC8FF"/>
+    </linearGradient>
+    <linearGradient id="pulse" x1="42" y1="128" x2="214" y2="128" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#147BFF" stop-opacity="0"/>
+      <stop offset=".24" stop-color="#7CC8FF"/>
+      <stop offset=".52" stop-color="#E6F2FF"/>
+      <stop offset=".76" stop-color="#7CC8FF"/>
+      <stop offset="1" stop-color="#147BFF" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="52%">
+      <stop stop-color="#147BFF" stop-opacity=".32"/>
+      <stop offset=".72" stop-color="#147BFF" stop-opacity=".05"/>
+      <stop offset="1" stop-color="#147BFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="#05070B"/>
+  <circle cx="128" cy="128" r="94" fill="url(#glow)"/>
+  <path d="M68 68a83 83 0 0 1 120-5" fill="none" stroke="#147BFF" stroke-width="7" stroke-linecap="round" opacity=".82"/>
+  <path d="M192 83a83 83 0 0 1-126 102" fill="none" stroke="#147BFF" stroke-width="7" stroke-linecap="round" opacity=".5"/>
+  <circle cx="195" cy="68" r="8" fill="#7CC8FF"/>
+  <circle cx="61" cy="178" r="7" fill="#7CC8FF"/>
+  <path d="M81 75h94l-43 42h50l-35 31h-48l43-42H68l13-31Z" fill="url(#zFill)"/>
+  <path d="M85 183h88l13-31h-91l-22 31h12Z" fill="url(#zFill)"/>
+  <path d="M40 132h52l9-19 14 55 14-75 15 57 10-18h62" fill="none" stroke="url(#pulse)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
