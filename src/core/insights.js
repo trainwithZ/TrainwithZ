@@ -3,7 +3,7 @@ import { getCyclePhase } from "../data/program.js";
 export function dailyInsight({ analytics, todayWorkout, lastSession }) {
   const phase = getCyclePhase();
   if (!todayWorkout) {
-    return "Recovery day. Keep the streak alive with steps, mobility, and a clean sleep window.";
+    return "Recovery day. Keep the rhythm alive with mobility, hydration, and a clean sleep window.";
   }
   if (!lastSession) {
     return `${todayWorkout.title} is ready. Log the first session cleanly so your local AI has a baseline.`;

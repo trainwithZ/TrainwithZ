@@ -1,13 +1,16 @@
 import { computeAnalytics, sessionVolume } from "./analytics.js?v=1";
-import { getAll, put, remove, seedExercises, uid } from "./db.js?v=2";
-import { dailyInsight, weeklyInsight } from "./insights.js?v=1";
-import { getCyclePhase, getTodayWorkout, LIBRARY, PROGRAM } from "../data/program.js?v=1";
+import { getAll, put, remove, seedExercises, uid } from "./db.js?v=3";
+import { dailyInsight, weeklyInsight } from "./insights.js?v=2";
+import { getCyclePhase, getTodayWorkout, LIBRARY, PROGRAM } from "../data/program.js?v=2";
 
 const DEFAULT_PREFS = {
   route: "home",
   unit: "lb",
   reducedMotion: false,
   activeExerciseIndex: 0,
+  expandedSessionId: null,
+  calendarExpanded: true,
+  cancelPrompt: false,
   libraryFilter: "All",
   search: ""
 };
@@ -27,6 +30,9 @@ export const store = {
     sessions: [],
     exercises: [],
     photos: [],
+    inbody: [],
+    nutrition: [],
+    program: [],
     draft: loadDraft(),
     ready: false
   },
@@ -41,28 +47,37 @@ export const store = {
   },
   snapshot() {
     const analytics = computeAnalytics(this.state.sessions);
-    const todayWorkout = getTodayWorkout();
+    const todayWorkout = getTodayWorkout(new Date(), this.state.program);
     const lastSession = analytics.sorted.at(-1) || null;
     return {
       ...this.state,
       analytics,
       todayWorkout,
       cycle: getCyclePhase(),
-      program: PROGRAM,
+      program: this.state.program,
       insight: dailyInsight({ analytics, todayWorkout, lastSession }),
       weeklyInsight: weeklyInsight(analytics),
       lastSession
     };
   },
   async init() {
-    const [sessions, photos, exercises] = await Promise.all([
+    const [sessions, photos, exercises, settings, inbody, nutrition] = await Promise.all([
       getAll("sessions"),
       getAll("photos"),
-      seedExercises(LIBRARY)
+      seedExercises(LIBRARY),
+      getAll("settings"),
+      getAll("inbody"),
+      getAll("nutrition")
     ]);
     this.state.sessions = sessions;
     this.state.photos = photos;
     this.state.exercises = exercises;
+    this.state.program = settings.find((item) => item.key === "program")?.value || structuredClone(PROGRAM);
+    this.state.inbody = inbody;
+    this.state.nutrition = nutrition;
+    if (!settings.some((item) => item.key === "program")) {
+      await put("settings", { key: "program", value: this.state.program });
+    }
     this.state.ready = true;
     this.emit();
   },
@@ -74,7 +89,8 @@ export const store = {
     this.state.prefs = { ...this.state.prefs, ...patch };
     this.emit();
   },
-  startWorkout(day = getTodayWorkout() || PROGRAM[0]) {
+  startWorkout(day = getTodayWorkout(new Date(), this.state.program) || this.state.program[0]) {
+    if (!day || !day.exercises.length) return;
     const now = new Date();
     this.state.draft = {
       id: uid("draft"),
@@ -106,6 +122,14 @@ export const store = {
     saveDraft(this.state.draft);
     this.emit();
   },
+  cancelWorkout() {
+    this.state.draft = null;
+    saveDraft(null);
+    this.state.prefs.route = "home";
+    this.state.prefs.activeExerciseIndex = 0;
+    this.state.prefs.cancelPrompt = false;
+    this.emit();
+  },
   async finishWorkout() {
     const draft = this.state.draft;
     if (!draft) return;
@@ -128,11 +152,13 @@ export const store = {
     this.state.draft = null;
     saveDraft(null);
     this.state.prefs.route = "home";
+    this.state.prefs.cancelPrompt = false;
     this.emit();
   },
   async deleteSession(id) {
     await remove("sessions", id);
     this.state.sessions = this.state.sessions.filter((session) => session.id !== id);
+    if (this.state.prefs.expandedSessionId === id) this.state.prefs.expandedSessionId = null;
     this.emit();
   },
   async saveExercise(exercise) {
@@ -142,6 +168,109 @@ export const store = {
     else this.state.exercises.push(exercise);
     this.emit();
   },
+  async deleteExercise(id) {
+    await remove("exercises", id);
+    this.state.exercises = this.state.exercises.filter((exercise) => exercise.id !== id);
+    this.state.program = this.state.program.map((day) => ({
+      ...day,
+      exercises: day.exercises.filter((exercise) => exercise[0] !== id)
+    }));
+    await this.saveProgram();
+  },
+  async addProgramDay(title) {
+    const day = {
+      id: uid("day"),
+      day: this.state.program.length + 1,
+      title: title || `Training Day ${this.state.program.length + 1}`,
+      focus: [],
+      tone: "Custom training day.",
+      exercises: []
+    };
+    this.state.program.push(day);
+    await this.saveProgram();
+    this.setPrefs({ editingDayId: day.id });
+  },
+  async updateProgramDay(id, patch) {
+    const day = this.state.program.find((item) => item.id === id);
+    if (!day) return;
+    Object.assign(day, patch);
+    await this.saveProgram();
+  },
+  async deleteProgramDay(id) {
+    this.state.program = this.state.program
+      .filter((day) => day.id !== id)
+      .map((day, index) => ({ ...day, day: index + 1 }));
+    await this.saveProgram();
+  },
+  async moveProgramDay(id, delta) {
+    const index = this.state.program.findIndex((day) => day.id === id);
+    const target = index + delta;
+    if (index < 0 || target < 0 || target >= this.state.program.length) return;
+    [this.state.program[index], this.state.program[target]] = [this.state.program[target], this.state.program[index]];
+    this.state.program = this.state.program.map((day, dayIndex) => ({ ...day, day: dayIndex + 1 }));
+    await this.saveProgram();
+  },
+  async addExerciseToDay(dayId, exerciseId) {
+    const day = this.state.program.find((item) => item.id === dayId);
+    const exercise = this.state.exercises.find((item) => item.id === exerciseId);
+    if (!day || !exercise || day.exercises.some((item) => item[0] === exerciseId)) return;
+    day.exercises.push([exercise.id, exercise.name, exercise.muscle, exercise.prescription, exercise.tip]);
+    day.focus = [...new Set(day.exercises.map((item) => item[2]))];
+    await this.saveProgram();
+  },
+  async removeExerciseFromDay(dayId, exerciseId) {
+    const day = this.state.program.find((item) => item.id === dayId);
+    if (!day) return;
+    day.exercises = day.exercises.filter((item) => item[0] !== exerciseId);
+    day.focus = [...new Set(day.exercises.map((item) => item[2]))];
+    await this.saveProgram();
+  },
+  async moveExerciseInDay(dayId, exerciseId, delta) {
+    const day = this.state.program.find((item) => item.id === dayId);
+    if (!day) return;
+    const index = day.exercises.findIndex((item) => item[0] === exerciseId);
+    const target = index + delta;
+    if (index < 0 || target < 0 || target >= day.exercises.length) return;
+    [day.exercises[index], day.exercises[target]] = [day.exercises[target], day.exercises[index]];
+    await this.saveProgram();
+  },
+  async updateProgramExercisePlan(dayId, exerciseId, sets, reps) {
+    const day = this.state.program.find((item) => item.id === dayId);
+    const exercise = day?.exercises.find((item) => item[0] === exerciseId);
+    if (!exercise) return;
+    const safeSets = Math.max(1, Math.min(20, Number(sets) || 1));
+    const safeReps = Math.max(1, Math.min(100, Number(reps) || 1));
+    exercise[3] = `${safeSets} x ${safeReps}`;
+    const libraryExercise = this.state.exercises.find((item) => item.id === exerciseId);
+    if (libraryExercise) {
+      libraryExercise.prescription = exercise[3];
+      await put("exercises", libraryExercise);
+    }
+    await this.saveProgram();
+  },
+  async saveProgram() {
+    await put("settings", { key: "program", value: this.state.program });
+    this.emit();
+  },
+  async addInBody(values) {
+    const scanDate = values.date ? new Date(`${values.date}T12:00:00`).toISOString() : new Date().toISOString();
+    const entry = { id: uid("inbody"), ...values, date: scanDate };
+    await put("inbody", entry);
+    this.state.inbody.push(entry);
+    this.emit();
+  },
+  async logNutrition(type, amount) {
+    const date = localDateKey();
+    const existing = this.state.nutrition.find((item) => item.date === date) || {
+      date, water: 0, protein: 0, waterGoal: 3, proteinGoal: 150
+    };
+    existing[type] = Math.max(0, Number(existing[type] || 0) + Number(amount || 0));
+    await put("nutrition", existing);
+    const index = this.state.nutrition.findIndex((item) => item.date === date);
+    if (index >= 0) this.state.nutrition[index] = existing;
+    else this.state.nutrition.push(existing);
+    this.emit();
+  },
   async addPhoto(file) {
     const photo = { id: uid("photo"), date: new Date().toISOString(), blob: file, note: "" };
     await put("photos", photo);
@@ -149,6 +278,13 @@ export const store = {
     this.emit();
   }
 };
+
+function localDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 function seedSets(prescription) {
   const count = Number((prescription.match(/^(\d+)/) || [])[1]) || 3;

@@ -1,17 +1,17 @@
-const CACHE = "trainwith-z-v6";
+const CACHE = "trainwith-z-v13";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./src/app.js?v=9",
-  "./src/styles.css?v=9",
+  "./src/app.js?v=15",
+  "./src/styles.css?v=15",
   "./src/core/analytics.js?v=1",
-  "./src/core/db.js?v=2",
-  "./src/core/insights.js?v=1",
-  "./src/core/state.js?v=2",
-  "./src/data/program.js?v=1",
-  "./src/ui/components.js?v=2",
-  "./src/features/views.js?v=5",
+  "./src/core/db.js?v=3",
+  "./src/core/insights.js?v=2",
+  "./src/core/state.js?v=5",
+  "./src/data/program.js?v=2",
+  "./src/ui/components.js?v=3",
+  "./src/features/views.js?v=11",
   "./assets/hero-athlete.png",
   "./assets/app-design-athlete.png",
   "./assets/app-design-athlete-crop.png",
@@ -22,7 +22,10 @@ const ASSETS = [
   "./assets/workout-focus-bg.png",
   "./assets/trainwith-z-brand-sheet.png",
   "./assets/icon-192.svg",
-  "./assets/icon-512.svg"
+  "./assets/icon-512.svg",
+  "./assets/icon-192.png",
+  "./assets/icon-512.png",
+  "./assets/trainwith-z-app-icon-v2.png"
 ];
 
 self.addEventListener("install", (event) => {

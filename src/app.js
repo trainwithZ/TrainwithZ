@@ -1,7 +1,6 @@
-import { store } from "./core/state.js?v=2";
-import { nav } from "./ui/components.js?v=2";
-import { PROGRAM } from "./data/program.js?v=1";
-import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=5";
+import { store } from "./core/state.js?v=5";
+import { nav } from "./ui/components.js?v=3";
+import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=11";
 
 const app = document.querySelector("#app");
 
@@ -51,10 +50,20 @@ document.addEventListener("click", (event) => {
     else store.startWorkout();
   }
   if (action === "start-program") {
-    const day = PROGRAM.find((item) => item.id === actionTarget.dataset.id) || PROGRAM[0];
+    const day = store.state.program.find((item) => item.id === actionTarget.dataset.id) || store.state.program[0];
     store.startWorkout(day);
   }
   if (action === "finish-workout") store.finishWorkout();
+  if (action === "request-cancel-workout") store.setPrefs({ cancelPrompt: true });
+  if (action === "keep-workout") store.setPrefs({ cancelPrompt: false });
+  if (action === "confirm-cancel-workout") store.cancelWorkout();
+  if (action === "toggle-session") {
+    store.setPrefs({
+      expandedSessionId: store.state.prefs.expandedSessionId === actionTarget.dataset.id
+        ? null
+        : actionTarget.dataset.id
+    });
+  }
   if (action === "prev-exercise") moveExercise(-1);
   if (action === "next-exercise") moveExercise(1);
   if (action === "toggle-set") updateSet(actionTarget.dataset.set, (set) => { set.done = !set.done; });
@@ -68,6 +77,7 @@ document.addEventListener("click", (event) => {
   if (action === "add-exercise") store.setRoute("library");
   if (action === "replace-exercise") store.setRoute("library");
   if (action === "add-library-exercise") addExerciseToDraft(actionTarget.dataset.id);
+  handleManagementAction(actionTarget);
 });
 
 app.addEventListener("input", (event) => {
@@ -91,6 +101,42 @@ app.addEventListener("change", (event) => {
 
   const fileInput = event.target.closest('[data-action="add-photo"]');
   if (fileInput?.files?.[0]) store.addPhoto(fileInput.files[0]);
+
+  const titleInput = event.target.closest('[data-action="program-day-title"]');
+  if (titleInput) store.updateProgramDay(titleInput.dataset.id, { title: titleInput.value.trim() || "Training Day" });
+
+  const planInput = event.target.closest('[data-action="program-exercise-sets"], [data-action="program-exercise-reps"]');
+  if (planInput) {
+    const row = planInput.closest(".program-exercise-row");
+    const sets = row.querySelector('[data-action="program-exercise-sets"]').value;
+    const reps = row.querySelector('[data-action="program-exercise-reps"]').value;
+    store.updateProgramExercisePlan(planInput.dataset.day, planInput.dataset.id, sets, reps);
+  }
+});
+
+app.addEventListener("submit", (event) => {
+  const form = event.target.closest("[data-form]");
+  if (!form) return;
+  event.preventDefault();
+  const values = Object.fromEntries(new FormData(form));
+  if (form.dataset.form === "exercise") {
+    const name = String(values.name || "").trim();
+    if (!name) return;
+    store.saveExercise({
+      id: `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${Date.now().toString(36)}`,
+      name,
+      muscle: String(values.muscle || "").trim(),
+      equipment: String(values.equipment || "Body / Free").trim(),
+      prescription: String(values.prescription || "3 x 10").trim(),
+      tip: String(values.tip || "").trim(),
+      editable: true
+    });
+    store.setPrefs({ showExerciseForm: false });
+  }
+  if (form.dataset.form === "inbody") {
+    store.addInBody(Object.fromEntries(Object.entries(values).map(([key, value]) => [key, key === "date" ? value : Number(value)])));
+    store.setPrefs({ showInBodyForm: false });
+  }
 });
 
 document.addEventListener("click", (event) => {
@@ -134,7 +180,12 @@ function updateSetQuietly(id, mutator) {
 
 function addExerciseToDraft(id) {
   const exercise = store.state.exercises.find((item) => item.id === id);
-  if (!exercise || !store.state.draft) return;
+  if (!exercise) return;
+  if (store.state.prefs.editingDayId) {
+    store.addExerciseToDay(store.state.prefs.editingDayId, id);
+    return;
+  }
+  if (!store.state.draft) return;
   store.updateDraft((draft) => {
     draft.exercises.push({
       id: exercise.id,
@@ -186,10 +237,20 @@ function runAction(actionTarget) {
     else store.startWorkout();
   }
   if (action === "start-program") {
-    const day = PROGRAM.find((item) => item.id === actionTarget.dataset.id) || PROGRAM[0];
+    const day = store.state.program.find((item) => item.id === actionTarget.dataset.id) || store.state.program[0];
     store.startWorkout(day);
   }
   if (action === "finish-workout") store.finishWorkout();
+  if (action === "request-cancel-workout") store.setPrefs({ cancelPrompt: true });
+  if (action === "keep-workout") store.setPrefs({ cancelPrompt: false });
+  if (action === "confirm-cancel-workout") store.cancelWorkout();
+  if (action === "toggle-session") {
+    store.setPrefs({
+      expandedSessionId: store.state.prefs.expandedSessionId === actionTarget.dataset.id
+        ? null
+        : actionTarget.dataset.id
+    });
+  }
   if (action === "prev-exercise") moveExercise(-1);
   if (action === "next-exercise") moveExercise(1);
   if (action === "toggle-set") updateSet(actionTarget.dataset.set, (set) => { set.done = !set.done; });
@@ -203,4 +264,58 @@ function runAction(actionTarget) {
   if (action === "add-exercise") store.setRoute("library");
   if (action === "replace-exercise") store.setRoute("library");
   if (action === "add-library-exercise") addExerciseToDraft(actionTarget.dataset.id);
+  handleManagementAction(actionTarget);
+}
+
+function handleManagementAction(actionTarget) {
+  const action = actionTarget.dataset.action;
+  const id = actionTarget.dataset.id;
+  if (action === "toggle-exercise-form") store.setPrefs({ showExerciseForm: !store.state.prefs.showExerciseForm });
+  if (action === "delete-library-exercise" && window.confirm("Delete this exercise from your Library and program days?")) store.deleteExercise(id);
+  if (action === "add-program-day") store.addProgramDay();
+  if (action === "delete-program-day" && window.confirm("Delete this workout day?")) store.deleteProgramDay(id);
+  if (action === "move-day-up") store.moveProgramDay(id, -1);
+  if (action === "move-day-down") store.moveProgramDay(id, 1);
+  if (action === "choose-day-exercises") store.setPrefs({ editingDayId: id, route: "library" });
+  if (action === "finish-editing-day") store.setPrefs({ editingDayId: null, route: "editor" });
+  if (action === "remove-day-exercise") store.removeExerciseFromDay(actionTarget.dataset.day, id);
+  if (action === "move-day-exercise-up") store.moveExerciseInDay(actionTarget.dataset.day, id, -1);
+  if (action === "move-day-exercise-down") store.moveExerciseInDay(actionTarget.dataset.day, id, 1);
+  if (action === "toggle-inbody-form") store.setPrefs({ showInBodyForm: !store.state.prefs.showInBodyForm });
+  if (action === "log-water") store.logNutrition("water", 0.25);
+  if (action === "log-protein") store.logNutrition("protein", 10);
+  if (action === "remove-water") store.logNutrition("water", -0.25);
+  if (action === "remove-protein") store.logNutrition("protein", -10);
+  if (action === "open-calendar-session") {
+    store.setPrefs({
+      route: "history",
+      expandedSessionId: id
+    });
+  }
+  if (action === "delete-history-session" && window.confirm("Delete this logged workout permanently?")) {
+    store.deleteSession(id);
+  }
+  if (action === "toggle-calendar") store.setPrefs({ calendarExpanded: !store.state.prefs.calendarExpanded });
+  if (action === "add-workout-set") {
+    store.updateDraft((draft) => {
+      const exercise = draft.exercises[store.state.prefs.activeExerciseIndex || 0];
+      const previous = exercise.sets.at(-1);
+      exercise.sets.push({
+        id: crypto.randomUUID(),
+        index: exercise.sets.length + 1,
+        weight: previous?.weight || "",
+        reps: previous?.reps || "",
+        done: false
+      });
+    });
+  }
+  if (action === "remove-workout-set") {
+    store.updateDraft((draft) => {
+      const exercise = draft.exercises[store.state.prefs.activeExerciseIndex || 0];
+      if (exercise.sets.length <= 1) return;
+      exercise.sets = exercise.sets
+        .filter((set) => set.id !== actionTarget.dataset.set)
+        .map((set, index) => ({ ...set, index: index + 1 }));
+    });
+  }
 }

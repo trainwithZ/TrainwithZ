@@ -1,6 +1,5 @@
 const DB_NAME = "trainwith-z";
-const DB_VERSION = 1;
-const STORES = ["sessions", "exercises", "photos", "settings"];
+const DB_VERSION = 2;
 
 export function openDB() {
   return new Promise((resolve, reject) => {
@@ -17,6 +16,14 @@ export function openDB() {
         photos.createIndex("date", "date");
       }
       if (!db.objectStoreNames.contains("settings")) db.createObjectStore("settings", { keyPath: "key" });
+      if (!db.objectStoreNames.contains("inbody")) {
+        const inbody = db.createObjectStore("inbody", { keyPath: "id" });
+        inbody.createIndex("date", "date");
+      }
+      if (!db.objectStoreNames.contains("nutrition")) {
+        const nutrition = db.createObjectStore("nutrition", { keyPath: "date" });
+        nutrition.createIndex("date", "date");
+      }
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);

@@ -98,10 +98,10 @@ export function getCyclePhase(date = new Date()) {
   return { week: week + 1, label: "Build", intensity: 1, note: "Standard intensity. Progress one clean variable." };
 }
 
-export function getTodayWorkout(date = new Date()) {
+export function getTodayWorkout(date = new Date(), program = PROGRAM) {
   const weekday = date.getDay();
-  const index = weekday === 0 || weekday === 6 ? null : Math.min(weekday - 1, PROGRAM.length - 1);
-  return index === null ? null : PROGRAM[index];
+  const index = weekday === 0 || weekday === 6 ? null : weekday - 1;
+  return index === null ? null : program[index] || null;
 }
 
 function inferEquipment(name) {

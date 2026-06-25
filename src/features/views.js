@@ -1,9 +1,9 @@
 import { formatDate, formatNumber, metric, ring, svgIcon, emptyState } from "../ui/components.js";
-import { estimatedPR } from "../core/analytics.js";
 
 export function homeView(state) {
   const { todayWorkout, analytics, insight, cycle, lastSession } = state;
   const afterWorkout = lastSession && sameDay(lastSession.date, new Date());
+  const nutrition = todayNutrition(state.nutrition);
   return `
     <main class="view home-view reference-home">
       <header class="home-topbar">
@@ -26,10 +26,12 @@ export function homeView(state) {
           </div>
         </div>
 
+        ${calendarCard(state.sessions, state.prefs.calendarExpanded)}
+
         <article class="dash-card workout-card">
           <span>Today's Workout</span>
           <h2>${todayWorkout ? todayWorkout.title : "Recovery Day"}</h2>
-          <p>${todayWorkout ? `${todayWorkout.exercises.length} exercises` : "Mobility, steps, sleep"}</p>
+          <p>${todayWorkout ? `${todayWorkout.exercises.length} exercises` : "Mobility, hydration, sleep"}</p>
           <button class="primary" data-action="start-workout">${state.draft ? "Resume Workout" : "Start Workout"} <b>&rsaquo;</b></button>
         </article>
 
@@ -65,12 +67,15 @@ export function homeView(state) {
 
         <article class="dash-card targets-card">
           <h2>Today's Targets</h2>
-          ${[
-            ["Workouts", `${Math.min(analytics.completed, 1)} / 1`],
-            ["Steps", "8,432 / 10,000"],
-            ["Protein", "120 / 150g"],
-            ["Water", "2.1 / 3L"]
-          ].map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`).join("")}
+          <div><span>Workouts</span><strong>${Math.min(analytics.completed, 1)} / 1</strong></div>
+          <div class="log-target">
+            <span>Protein</span><strong>${nutrition.protein} / ${nutrition.proteinGoal}g</strong>
+            <section><button data-action="remove-protein" aria-label="Remove 10 grams protein">−</button><button data-action="log-protein" aria-label="Log 10 grams protein">+10g</button></section>
+          </div>
+          <div class="log-target">
+            <span>Water</span><strong>${nutrition.water.toFixed(1)} / ${nutrition.waterGoal}L</strong>
+            <section><button data-action="remove-water" aria-label="Remove 250 milliliters water">−</button><button data-action="log-water" aria-label="Log 250 milliliters water">+250ml</button></section>
+          </div>
         </article>
 
         <article class="dash-card ai-strip">
@@ -92,13 +97,16 @@ export function workoutView(state) {
   return `
     <main class="view workout-view">
       <section class="focus-top">
-        <button class="icon-btn" data-action="prev-exercise" aria-label="Previous exercise">&lsaquo;</button>
+        <button class="cancel-workout-btn" data-action="request-cancel-workout" aria-label="Cancel workout">&times;</button>
         <div>
           <p class="eyebrow">Focus mode &middot; ${index + 1}/${draft.exercises.length}</p>
           <h1>${exercise.name}</h1>
           <span>${exercise.muscle} &middot; ${exercise.prescription}</span>
         </div>
-        <button class="icon-btn" data-action="next-exercise" aria-label="Next exercise">&rsaquo;</button>
+        <div class="focus-nav">
+          <button class="icon-btn" data-action="prev-exercise" aria-label="Previous exercise">&lsaquo;</button>
+          <button class="icon-btn" data-action="next-exercise" aria-label="Next exercise">&rsaquo;</button>
+        </div>
       </section>
 
       <section class="exercise-focus-card">
@@ -111,9 +119,10 @@ export function workoutView(state) {
               <span>Set ${set.index}</span>
               <input inputmode="decimal" data-action="set-weight" data-set="${set.id}" value="${set.weight}" placeholder="Weight" aria-label="Weight for set ${set.index}">
               <input inputmode="numeric" data-action="set-reps" data-set="${set.id}" value="${set.reps}" placeholder="Reps" aria-label="Reps for set ${set.index}">
-              <em>${estimatedPR(set) || ""}</em>
+              <button class="remove-set-btn" data-action="remove-workout-set" data-set="${set.id}" aria-label="Remove set ${set.index}">&times;</button>
             </label>`).join("")}
         </div>
+        <button class="add-set-button" data-action="add-workout-set">${svgIcon("plus")} Add set</button>
         <textarea data-action="exercise-notes" placeholder="Quick note for this exercise">${exercise.notes || ""}</textarea>
       </section>
 
@@ -127,6 +136,18 @@ export function workoutView(state) {
         <div><strong>${completed}/${total}</strong><span>sets complete</span></div>
         <button class="primary" data-action="finish-workout">${svgIcon("check")} Finish</button>
       </section>
+      ${state.prefs.cancelPrompt ? `
+        <div class="confirm-backdrop" role="presentation">
+          <section class="confirm-sheet" role="dialog" aria-modal="true" aria-labelledby="cancel-title">
+            <span>End this session?</span>
+            <h2 id="cancel-title">Cancel workout</h2>
+            <p>Your current sets will be removed and this workout will not appear in History.</p>
+            <div>
+              <button class="glass" data-action="keep-workout">Keep training</button>
+              <button class="danger-button" data-action="confirm-cancel-workout">Cancel workout</button>
+            </div>
+          </section>
+        </div>` : ""}
     </main>`;
 }
 
@@ -139,23 +160,46 @@ export function libraryView(state) {
   );
   return `
     <main class="view">
-      <header class="page-head"><p class="eyebrow">Library</p><h1>Exercise system</h1></header>
+      <header class="page-head library-head">
+        <div class="page-title-with-back"><button class="back-button" data-route="${state.prefs.editingDayId ? "editor" : state.draft ? "workout" : "editor"}" aria-label="Back">&lsaquo;</button><div><p class="eyebrow">Library</p><h1>Exercise system</h1></div></div>
+        <button class="primary compact" data-action="toggle-exercise-form">${svgIcon("plus")} New exercise</button>
+      </header>
+      ${state.prefs.showExerciseForm ? `
+        <form class="panel form-grid" data-form="exercise">
+          <h2>Add exercise</h2>
+          <label>Name<input name="name" required placeholder="Exercise name"></label>
+          <label>Target muscle<input name="muscle" required placeholder="Glutes, Back..."></label>
+          <label>Equipment<input name="equipment" placeholder="Cable, Dumbbell..."></label>
+          <label>Sets and reps<input name="prescription" placeholder="3 x 10"></label>
+          <label class="full-field">Form tip<textarea name="tip" placeholder="Short technique cue"></textarea></label>
+          <div class="form-actions full-field">
+            <button type="button" class="glass" data-action="toggle-exercise-form">Cancel</button>
+            <button class="primary" type="submit">Save exercise</button>
+          </div>
+        </form>` : ""}
+      ${state.prefs.editingDayId ? `<section class="editing-context"><span>Adding to</span><strong>${state.program.find((day) => day.id === state.prefs.editingDayId)?.title || "workout day"}</strong><button data-action="finish-editing-day">Done</button></section>` : ""}
       <div class="search-row"><input data-action="search-library" value="${state.prefs.search}" placeholder="Search exercises" aria-label="Search exercises"></div>
       <div class="chip-scroll">${filters.map((filter) => `<button class="${state.prefs.libraryFilter === filter ? "active" : ""}" data-filter="${filter}">${filter}</button>`).join("")}</div>
       <section class="card-list">${filtered.map((exercise) => `
         <article class="library-card">
           <div><h2>${exercise.name}</h2><p>${exercise.muscle} &middot; ${exercise.equipment}</p><span>${exercise.tip}</span></div>
-          <button class="icon-btn" data-action="add-library-exercise" data-id="${exercise.id}" aria-label="Add ${exercise.name}">${svgIcon("plus")}</button>
+          <div class="library-actions">
+            ${(state.draft || state.prefs.editingDayId) ? `<button class="icon-btn" data-action="add-library-exercise" data-id="${exercise.id}" aria-label="Add ${exercise.name}">${svgIcon("plus")}</button>` : ""}
+            <button class="delete-icon" data-action="delete-library-exercise" data-id="${exercise.id}" aria-label="Delete ${exercise.name}">&times;</button>
+          </div>
         </article>`).join("")}</section>
     </main>`;
 }
 
 export function analyticsView(state) {
-  const { analytics } = state;
+  const { analytics, weeklyInsight, photos } = state;
+  const inbody = [...state.inbody].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const latest = inbody[0];
+  const previous = inbody[1];
   return `
     <main class="view">
-      <header class="page-head"><p class="eyebrow">Progress</p><h1>Athlete analytics</h1></header>
-      <section class="panel split-panel">${ring(analytics.score, "Week")}<div><h2>Momentum score</h2><p>Built from sessions, weekly volume, duration consistency, and PR signals. It rewards useful work, not chaos.</p></div></section>
+      <header class="page-head"><p class="eyebrow">Progress + Review</p><h1>Your training signal</h1></header>
+      <section class="panel split-panel review-hero">${ring(analytics.score, "Score")}<div><h2>${analytics.completed} workouts this week</h2><p>${weeklyInsight}</p></div></section>
       <section class="stat-grid">
         ${metric("Strength trend", `${analytics.volumeTrend >= 0 ? "+" : ""}${analytics.volumeTrend}%`, "last sessions")}
         ${metric("Duration trend", `${analytics.durationTrend >= 0 ? "+" : ""}${analytics.durationTrend}%`, "pace")}
@@ -163,36 +207,94 @@ export function analyticsView(state) {
         ${metric("Best PR", analytics.bestPR ? analytics.bestPR.value : "-", analytics.bestPR ? analytics.bestPR.exercise : "Log more sets")}
       </section>
       <section class="panel"><h2>Muscle focus</h2><div class="bars">${analytics.muscleFocus.length ? analytics.muscleFocus.map(([muscle, count]) => `<div><span>${muscle}</span><i style="width:${Math.min(100, count * 28)}%"></i><em>${count}</em></div>`).join("") : "<p>No weekly muscle data yet.</p>"}</div></section>
+      <section class="panel">
+        <div class="panel-title"><div><p class="eyebrow">Body composition</p><h2>InBody tracking</h2></div><button class="primary compact" data-action="toggle-inbody-form">${svgIcon("plus")} Add scan</button></div>
+        ${state.prefs.showInBodyForm ? inBodyForm() : ""}
+        ${latest ? inBodySummary(latest, previous) : `<div class="soft-empty"><p>Add your first InBody scan to track weight, muscle, fat, BMI, score, and segmental fat over time.</p></div>`}
+      </section>
+      <section class="panel">
+        <div class="panel-title"><h2>Progress photos</h2><label class="photo-upload">${svgIcon("camera")} Add<input type="file" accept="image/*" data-action="add-photo"></label></div>
+        <div class="photo-grid">${photos.length ? photos.slice(-4).map((photo) => `<figure><img src="${URL.createObjectURL(photo.blob)}" alt="Progress photo from ${formatDate(photo.date)}"><figcaption>${formatDate(photo.date)}</figcaption></figure>`).join("") : "<p>Photos stay private on this device.</p>"}</div>
+      </section>
     </main>`;
 }
 
 export function historyView(state) {
-  if (!state.sessions.length) return emptyState("No sessions yet", "Your timeline becomes useful as soon as the first workout is completed.", `<button class="primary" data-action="start-workout">${svgIcon("train")} Start workout</button>`);
+  if (!state.sessions.length) return `
+    <main class="view">
+      <header class="page-head"><div class="page-title-with-back"><button class="back-button" data-route="editor" aria-label="Back">&lsaquo;</button><div><p class="eyebrow">History</p><h1>Training timeline</h1></div></div></header>
+      ${emptyState("No sessions yet", "Your timeline becomes useful as soon as the first workout is completed.", `<button class="primary" data-action="start-workout">${svgIcon("train")} Start workout</button>`)}
+    </main>`;
   return `
     <main class="view">
-      <header class="page-head"><p class="eyebrow">History</p><h1>Training timeline</h1></header>
-      <section class="timeline">${[...state.sessions].sort((a, b) => new Date(b.date) - new Date(a.date)).map((session) => `
-        <article class="session-card">
-          <div><span>${formatDate(session.date, { weekday: "short", month: "short", day: "numeric" })}</span><h2>${session.title}</h2><p>${session.focus.join(" &middot; ")}</p></div>
-          <div class="session-metrics"><strong>${formatNumber(session.volume)} lb</strong><span>${session.duration} min</span></div>
-        </article>`).join("")}</section>
+      <header class="page-head"><div class="page-title-with-back"><button class="back-button" data-route="editor" aria-label="Back">&lsaquo;</button><div><p class="eyebrow">History</p><h1>Training timeline</h1></div></div></header>
+      <section class="timeline">${[...state.sessions].sort((a, b) => new Date(b.date) - new Date(a.date)).map((session) => {
+        const expanded = state.prefs.expandedSessionId === session.id;
+        return `
+        <article class="session-card ${expanded ? "expanded" : ""}">
+          <button class="session-summary" data-action="toggle-session" data-id="${session.id}" aria-expanded="${expanded}">
+            <div><span>${formatDate(session.date, { weekday: "short", month: "short", day: "numeric" })}</span><h2>${session.title}</h2><p>${session.focus.join(" &middot; ")}</p></div>
+            <div class="session-metrics"><strong>${formatNumber(session.volume)} lb</strong><span>${session.duration} min</span><b>${expanded ? "−" : "+"}</b></div>
+          </button>
+          ${expanded ? `<div class="session-detail">
+            <div class="session-detail-actions"><button class="delete-session-button" data-action="delete-history-session" data-id="${session.id}">Delete workout</button></div>
+            ${(session.exercises || []).map((exercise) => `
+            <section class="history-exercise">
+              <div><h3>${exercise.name}</h3><span>${exercise.muscle}${exercise.skipped ? " · Skipped" : ""}</span></div>
+              <div class="history-sets">
+                <span>Set</span><span>Weight</span><span>Reps</span><span>Status</span>
+                ${(exercise.sets || []).map((set) => `
+                  <b>${set.index}</b>
+                  <strong>${set.weight || "—"} lb</strong>
+                  <strong>${set.reps || "—"}</strong>
+                  <em class="${set.done ? "complete" : ""}">${set.done ? "Done" : "Not logged"}</em>`).join("")}
+              </div>
+              ${exercise.notes ? `<p>${exercise.notes}</p>` : ""}
+            </section>`).join("") || "<p>No set details were stored for this older session.</p>"}</div>` : ""}
+        </article>`;
+      }).join("")}</section>
     </main>`;
 }
 
 export function editorView(state) {
   return `
     <main class="view">
-      <header class="page-head"><p class="eyebrow">Workouts</p><h1>Training hub</h1></header>
-      <section class="panel"><h2>Program logic</h2><p>Two build weeks, one deload/light activation week, then a controlled return to intensity.</p></section>
+      <header class="page-head editor-head">
+        <div><p class="eyebrow">Workouts</p><h1>Training hub</h1></div>
+        <button class="primary compact" data-action="add-program-day">${svgIcon("plus")} Add day</button>
+      </header>
+      <section class="panel"><h2>Your current program</h2><p>Days run in the order shown. Reorder them anytime, replace exercises, or build a completely new month.</p></section>
       <section class="hub-actions">
         <button class="glass" data-route="library">${svgIcon("library")} Exercise Library</button>
         <button class="glass" data-route="history">${svgIcon("history")} Workout History</button>
       </section>
-      <section class="card-list">${state.program.map((day) => `
-        <article class="program-card">
-          <div><p class="eyebrow">Day ${day.day}</p><h2>${day.title}</h2><span>${day.tone}</span></div>
-          <button class="primary compact" data-action="start-program" data-id="${day.id}">${svgIcon("train")} Start</button>
-        </article>`).join("")}</section>
+      <section class="program-editor-list">${state.program.map((day, index) => `
+        <article class="program-editor-card">
+          <header>
+            <div><p class="eyebrow">Day ${index + 1}</p><input data-action="program-day-title" data-id="${day.id}" value="${escapeAttribute(day.title)}" aria-label="Day title"></div>
+            <div class="reorder-actions">
+              <button data-action="move-day-up" data-id="${day.id}" aria-label="Move day up">&uarr;</button>
+              <button data-action="move-day-down" data-id="${day.id}" aria-label="Move day down">&darr;</button>
+              <button class="delete-icon" data-action="delete-program-day" data-id="${day.id}" aria-label="Delete day">&times;</button>
+            </div>
+          </header>
+          <div class="program-exercises">${day.exercises.length ? day.exercises.map((exercise, exerciseIndex) => {
+            const plan = parsePrescription(exercise.prescription || exercise[3]);
+            return `
+            <div class="program-exercise-row">
+              <span><b>${exercise.name || exercise[1]}</b><small>${exercise.muscle || exercise[2]}</small></span>
+              <label class="plan-field"><input type="number" min="1" max="20" value="${plan.sets}" data-action="program-exercise-sets" data-day="${day.id}" data-id="${exercise.id || exercise[0]}" aria-label="Sets"><small>sets</small></label>
+              <label class="plan-field"><input type="number" min="1" max="100" value="${plan.reps}" data-action="program-exercise-reps" data-day="${day.id}" data-id="${exercise.id || exercise[0]}" aria-label="Reps"><small>reps</small></label>
+              <button data-action="move-day-exercise-up" data-day="${day.id}" data-id="${exercise.id || exercise[0]}" aria-label="Move exercise up">&uarr;</button>
+              <button data-action="move-day-exercise-down" data-day="${day.id}" data-id="${exercise.id || exercise[0]}" aria-label="Move exercise down">&darr;</button>
+              <button class="delete-icon" data-action="remove-day-exercise" data-day="${day.id}" data-id="${exercise.id || exercise[0]}" aria-label="Remove exercise">&times;</button>
+            </div>`;
+          }).join("") : "<p>No exercises yet. Add from your Library.</p>"}</div>
+          <footer>
+            <button class="glass" data-action="choose-day-exercises" data-id="${day.id}">${svgIcon("plus")} Add exercises</button>
+            <button class="primary compact" data-action="start-program" data-id="${day.id}" ${day.exercises.length ? "" : "disabled"}>${svgIcon("train")} Start</button>
+          </footer>
+        </article>`).join("") || `<section class="soft-empty"><h2>No workout days</h2><p>Add your first day, then choose exercises from the Library.</p></section>`}</section>
     </main>`;
 }
 
@@ -232,4 +334,152 @@ function trendText(now, before) {
   if (!before) return "baseline";
   const delta = now - before;
   return `${delta >= 0 ? "+" : ""}${formatNumber(delta)} vs last`;
+}
+
+function calendarCard(sessions, expanded) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const leading = (firstDay.getDay() + 6) % 7;
+  const monthName = new Intl.DateTimeFormat("en", { month: "long" }).format(now);
+  const sessionsByDay = new Map();
+  sessions
+    .filter((session) => {
+      const date = new Date(session.date);
+      return date.getFullYear() === year && date.getMonth() === month;
+    })
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .forEach((session) => {
+      sessionsByDay.set(new Date(session.date).getDate(), session);
+    });
+  const cells = [
+    ...Array.from({ length: leading }, () => `<i></i>`),
+    ...Array.from({ length: daysInMonth }, (_, index) => {
+      const day = index + 1;
+      const classes = [
+        day === now.getDate() ? "today" : "",
+        sessionsByDay.has(day) ? "trained" : ""
+      ].filter(Boolean).join(" ");
+      const session = sessionsByDay.get(day);
+      return session
+        ? `<button class="${classes}" data-action="open-calendar-session" data-id="${session.id}" aria-label="Open completed workout from ${monthName} ${day}"><span>${day}</span><em>Done</em></button>`
+        : `<b class="${classes}">${day}</b>`;
+    })
+  ];
+  return `
+    <article class="dash-card calendar-card ${expanded ? "expanded" : "collapsed"}">
+      <div><span>Training calendar</span><strong>${monthName}</strong><button data-action="toggle-calendar" aria-label="${expanded ? "Collapse" : "Expand"} calendar">${expanded ? "&minus;" : "+"}</button></div>
+      ${expanded ? `
+        <section class="calendar-grid">
+          ${["M", "T", "W", "T", "F", "S", "S"].map((day) => `<em>${day}</em>`).join("")}
+          ${cells.join("")}
+        </section>` : ""}
+    </article>`;
+}
+
+function parsePrescription(value = "") {
+  return {
+    sets: Number((value.match(/^(\d+)/) || [])[1]) || 3,
+    reps: Number((value.match(/x\s*(\d+)/i) || [])[1]) || 10
+  };
+}
+
+function todayNutrition(entries) {
+  const now = new Date();
+  const key = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  return entries.find((entry) => entry.date === key) || {
+    water: 0,
+    protein: 0,
+    waterGoal: 3,
+    proteinGoal: 150
+  };
+}
+
+function inBodyForm() {
+  const today = new Date();
+  const dateValue = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  return `
+    <form class="inbody-form" data-form="inbody">
+      <label><span>Scan date</span><div><input name="date" type="date" value="${dateValue}" required></div></label>
+      ${[
+        ["weight", "Weight", "kg"],
+        ["muscle", "Skeletal muscle", "kg"],
+        ["fat", "Body fat", "%"],
+        ["bmi", "BMI", ""],
+        ["score", "InBody score", "/100"],
+        ["visceralFat", "Visceral fat level", ""],
+        ["rightArmFat", "Right arm fat", "%"],
+        ["leftArmFat", "Left arm fat", "%"],
+        ["trunkFat", "Trunk fat", "%"],
+        ["rightLegFat", "Right leg fat", "%"],
+        ["leftLegFat", "Left leg fat", "%"]
+      ].map(([name, label, unit]) => `
+        <label><span>${label}</span><div><input name="${name}" type="number" step="0.1" inputmode="decimal" required><em>${unit}</em></div></label>`).join("")}
+      <div class="form-actions full-field">
+        <button type="button" class="glass" data-action="toggle-inbody-form">Cancel</button>
+        <button class="primary" type="submit">Save scan</button>
+      </div>
+    </form>`;
+}
+
+function inBodySummary(latest, previous) {
+  const metrics = [
+    ["Weight", "weight", "kg", false],
+    ["Muscle", "muscle", "kg", true],
+    ["Body fat", "fat", "%", false],
+    ["BMI", "bmi", "", false],
+    ["InBody score", "score", "", true],
+    ["Visceral fat", "visceralFat", "", false]
+  ];
+  const segmental = [
+    ["Right arm", "rightArmFat"],
+    ["Left arm", "leftArmFat"],
+    ["Trunk", "trunkFat"],
+    ["Right leg", "rightLegFat"],
+    ["Left leg", "leftLegFat"]
+  ];
+  return `
+    <div class="inbody-summary">
+      <header><span>Latest scan</span><strong>${formatDate(latest.date, { month: "short", day: "numeric", year: "numeric" })}</strong></header>
+      <div class="inbody-metrics">${metrics.map(([label, key, unit, higherIsBetter]) => {
+        const delta = previous ? Number(latest[key]) - Number(previous[key]) : null;
+        return `<article><span>${label}</span><strong>${latest[key]}${unit}</strong>${delta === null ? `<em>Baseline</em>` : `<em class="${metricTrend(delta, higherIsBetter)}">${signed(delta)}${unit}</em>`}</article>`;
+      }).join("")}</div>
+      <section class="inbody-analysis"><h3>Local analysis</h3><p>${inBodyAnalysis(latest, previous)}</p></section>
+      <section class="segmental-fat"><h3>Segmental fat</h3>${segmental.map(([label, key]) => {
+        const delta = previous ? Number(latest[key]) - Number(previous[key]) : null;
+        return `<div><span>${label}</span><strong>${latest[key]}%</strong><em class="${delta === null ? "" : metricTrend(delta, false)}">${delta === null ? "Baseline" : `${signed(delta)}%`}</em></div>`;
+      }).join("")}</section>
+    </div>`;
+}
+
+function inBodyAnalysis(latest, previous) {
+  if (!previous) return "This is your baseline scan. Add another InBody result later to unlock trend analysis.";
+  const weight = Number(latest.weight) - Number(previous.weight);
+  const muscle = Number(latest.muscle) - Number(previous.muscle);
+  const fat = Number(latest.fat) - Number(previous.fat);
+  const score = Number(latest.score) - Number(previous.score);
+  const parts = [
+    `weight ${weight === 0 ? "held steady" : `${weight > 0 ? "increased" : "decreased"} by ${Math.abs(weight).toFixed(1)} kg`}`,
+    `muscle ${muscle === 0 ? "held steady" : `${muscle > 0 ? "increased" : "decreased"} by ${Math.abs(muscle).toFixed(1)} kg`}`,
+    `body fat ${fat === 0 ? "held steady" : `${fat > 0 ? "increased" : "decreased"} by ${Math.abs(fat).toFixed(1)}%`}`,
+    `score ${score === 0 ? "held steady" : `${score > 0 ? "improved" : "decreased"} by ${Math.abs(score).toFixed(1)} points`}`
+  ];
+  return `Since your previous scan, ${parts.join(", ")}. This is descriptive tracking, not a medical interpretation.`;
+}
+
+function metricTrend(delta, higherIsBetter) {
+  if (!delta) return "neutral";
+  return (delta > 0) === higherIsBetter ? "positive" : "negative";
+}
+
+function signed(value) {
+  const rounded = Math.round(value * 10) / 10;
+  return `${rounded > 0 ? "+" : ""}${rounded}`;
+}
+
+function escapeAttribute(value = "") {
+  return String(value).replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }

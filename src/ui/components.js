@@ -35,10 +35,10 @@ export function nav(route) {
     ["editor", "Workouts", "train"],
     ["start", "Start", "plus"],
     ["analytics", "Progress", "chart"],
-    ["weekly", "Review", "spark"]
+    ["history", "History", "history"]
   ];
   return `<nav class="bottom-nav" aria-label="Primary">${items.map(([id, label, glyph]) => `
-    <button class="${route === id || (id === "editor" && ["workout", "library", "history"].includes(route)) ? "active" : ""} ${id === "start" ? "nav-start" : ""}" ${id === "start" ? 'data-action="start-workout"' : `data-route="${id}"`} aria-label="${label}">
+    <button class="${route === id || (id === "editor" && ["workout", "library"].includes(route)) ? "active" : ""} ${id === "start" ? "nav-start" : ""}" ${id === "start" ? 'data-action="start-workout"' : `data-route="${id}"`} aria-label="${label}">
       ${svgIcon(glyph)}<span>${label}</span>
     </button>`).join("")}</nav>`;
 }
