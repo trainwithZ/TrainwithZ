@@ -9,6 +9,7 @@ const DEFAULT_PREFS = {
   reducedMotion: false,
   activeExerciseIndex: 0,
   expandedSessionId: null,
+  expandedProgramDayId: null,
   calendarExpanded: true,
   cancelPrompt: false,
   libraryFilter: "All",

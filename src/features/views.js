@@ -269,15 +269,20 @@ export function editorView(state) {
         <button class="glass" data-route="history">${svgIcon("history")} Workout History</button>
       </section>
       <section class="program-editor-list">${state.program.map((day, index) => `
-        <article class="program-editor-card">
+        <article class="program-editor-card ${state.prefs.expandedProgramDayId === day.id ? "expanded" : "collapsed"}">
           <header>
-            <div><p class="eyebrow">Day ${index + 1}</p><input data-action="program-day-title" data-id="${day.id}" value="${escapeAttribute(day.title)}" aria-label="Day title"></div>
+            <button class="program-day-toggle" data-action="toggle-program-day" data-id="${day.id}" aria-expanded="${state.prefs.expandedProgramDayId === day.id}">
+              <span><small>Day ${index + 1}</small><strong>${day.title}</strong><em>${day.exercises.length} exercise${day.exercises.length === 1 ? "" : "s"}</em></span>
+              <b>${state.prefs.expandedProgramDayId === day.id ? "&minus;" : "+"}</b>
+            </button>
             <div class="reorder-actions">
               <button data-action="move-day-up" data-id="${day.id}" aria-label="Move day up">&uarr;</button>
               <button data-action="move-day-down" data-id="${day.id}" aria-label="Move day down">&darr;</button>
               <button class="delete-icon" data-action="delete-program-day" data-id="${day.id}" aria-label="Delete day">&times;</button>
             </div>
           </header>
+          ${state.prefs.expandedProgramDayId === day.id ? `
+          <div class="program-day-name"><label>Day name<input data-action="program-day-title" data-id="${day.id}" value="${escapeAttribute(day.title)}" aria-label="Day title"></label></div>
           <div class="program-exercises">${day.exercises.length ? day.exercises.map((exercise, exerciseIndex) => {
             const plan = parsePrescription(exercise.prescription || exercise[3]);
             return `
@@ -293,7 +298,7 @@ export function editorView(state) {
           <footer>
             <button class="glass" data-action="choose-day-exercises" data-id="${day.id}">${svgIcon("plus")} Add exercises</button>
             <button class="primary compact" data-action="start-program" data-id="${day.id}" ${day.exercises.length ? "" : "disabled"}>${svgIcon("train")} Start</button>
-          </footer>
+          </footer>` : ""}
         </article>`).join("") || `<section class="soft-empty"><h2>No workout days</h2><p>Add your first day, then choose exercises from the Library.</p></section>`}</section>
     </main>`;
 }

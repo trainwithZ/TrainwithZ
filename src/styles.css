@@ -1112,7 +1112,27 @@ textarea { min-height: 78px; padding: 12px; resize: vertical; }
   padding: 14px;
 }
 .program-editor-card > header { border-bottom: 1px solid rgba(255,255,255,.06); }
+.program-editor-card.collapsed > header { border-bottom: 0; }
 .program-editor-card > header input { min-height: 42px; padding: 0 10px; font-size: 1rem; font-weight: 800; }
+.program-day-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  text-align: left;
+  background: transparent;
+}
+.program-day-toggle span { min-width: 0; }
+.program-day-toggle small, .program-day-toggle strong, .program-day-toggle em { display: block; }
+.program-day-toggle small { color: var(--accent); font-size: .68rem; font-weight: 800; text-transform: uppercase; }
+.program-day-toggle strong { margin: 3px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1rem; }
+.program-day-toggle em { color: var(--muted); font-size: .72rem; font-style: normal; }
+.program-day-toggle > b { display: grid; place-items: center; width: 36px; height: 36px; margin-left: 10px; border-radius: 8px; color: var(--accent); background: rgba(20,123,255,.1); font-size: 1.15rem; }
+.program-day-name { padding: 12px 14px 4px; }
+.program-day-name label { display: grid; gap: 6px; color: var(--muted); font-size: .72rem; }
+.program-day-name input { min-height: 46px; padding: 0 12px; }
 .reorder-actions { display: flex; gap: 6px; }
 .reorder-actions button, .program-exercises > div > button {
   width: 40px;

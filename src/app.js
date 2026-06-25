@@ -1,6 +1,6 @@
-import { store } from "./core/state.js?v=5";
+import { store } from "./core/state.js?v=6";
 import { nav } from "./ui/components.js?v=3";
-import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=11";
+import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=12";
 
 const app = document.querySelector("#app");
 
@@ -290,6 +290,11 @@ function handleManagementAction(actionTarget) {
     store.setPrefs({
       route: "history",
       expandedSessionId: id
+    });
+  }
+  if (action === "toggle-program-day") {
+    store.setPrefs({
+      expandedProgramDayId: store.state.prefs.expandedProgramDayId === id ? null : id
     });
   }
   if (action === "delete-history-session" && window.confirm("Delete this logged workout permanently?")) {
