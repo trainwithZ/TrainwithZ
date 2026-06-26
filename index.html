@@ -7,11 +7,20 @@
     <meta name="description" content="TrainWith Z is a private offline-first AI fitness operating system.">
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="apple-touch-icon" href="assets/icon-192.png">
-    <link rel="stylesheet" href="src/styles.css?v=18">
+    <link rel="stylesheet" href="src/styles.css?v=19">
     <title>TrainWith Z</title>
   </head>
   <body>
+    <div id="splash" class="splash-screen" aria-label="TrainWith Z loading">
+      <div class="splash-orbit">
+        <span></span>
+        <img src="assets/trainwith-z-mark.svg" alt="">
+      </div>
+      <h1>TrainWith Z</h1>
+      <p>Private training system</p>
+      <div class="splash-loader"><i></i></div>
+    </div>
     <div id="app" class="app-shell" aria-live="polite"></div>
-    <script type="module" src="src/app.js?v=18"></script>
+    <script type="module" src="src/app.js?v=19"></script>
   </body>
 </html>

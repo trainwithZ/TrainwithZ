@@ -55,6 +55,128 @@ input, textarea {
 
 input:focus, textarea:focus { border-color: rgba(158, 220, 255, 0.75); box-shadow: 0 0 0 3px rgba(158, 220, 255, 0.1); }
 
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  min-height: 100dvh;
+  padding: 28px;
+  color: var(--text);
+  text-align: center;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(20, 123, 255, .24), transparent 18rem),
+    radial-gradient(circle at 50% 74%, rgba(124, 200, 255, .14), transparent 16rem),
+    linear-gradient(180deg, #020407 0%, #07101b 48%, #05070b 100%);
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .58s ease, visibility .58s ease;
+}
+
+.splash-screen.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.splash-orbit {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 148px;
+  height: 148px;
+  margin-bottom: 6px;
+}
+
+.splash-orbit::before,
+.splash-orbit::after,
+.splash-orbit span {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+}
+
+.splash-orbit::before {
+  inset: 0;
+  border: 1px solid rgba(124, 200, 255, .24);
+  box-shadow: 0 0 48px rgba(20, 123, 255, .26);
+}
+
+.splash-orbit::after {
+  inset: 14px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  animation: splashSpin 4.8s linear infinite;
+  border-top-color: rgba(124, 200, 255, .88);
+}
+
+.splash-orbit span {
+  right: 16px;
+  top: 23px;
+  width: 10px;
+  height: 10px;
+  background: var(--accent);
+  box-shadow: 0 0 22px rgba(124, 200, 255, .9);
+}
+
+.splash-orbit img {
+  position: relative;
+  z-index: 1;
+  width: 92px;
+  height: 92px;
+  filter: drop-shadow(0 0 28px rgba(20, 123, 255, .65));
+  animation: splashMark 1.8s ease-in-out infinite;
+}
+
+.splash-screen h1 {
+  margin: 0;
+  font-size: clamp(2.1rem, 10vw, 4rem);
+  line-height: .94;
+  letter-spacing: 0;
+}
+
+.splash-screen p {
+  margin: 0;
+  color: rgba(230, 242, 255, .72);
+  font-size: .82rem;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.splash-loader {
+  width: min(220px, 58vw);
+  height: 4px;
+  margin-top: 18px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .08);
+}
+
+.splash-loader i {
+  display: block;
+  width: 44%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, var(--accent), var(--electric));
+  animation: splashLoad 1.12s ease-in-out infinite;
+}
+
+@keyframes splashSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes splashMark {
+  50% { transform: scale(1.035); }
+}
+
+@keyframes splashLoad {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(260%); }
+}
+
 .app-shell {
   width: min(100%, 1180px);
   min-height: 100dvh;

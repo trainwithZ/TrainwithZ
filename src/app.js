@@ -3,6 +3,8 @@ import { nav } from "./ui/components.js?v=3";
 import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=14";
 
 const app = document.querySelector("#app");
+const splash = document.querySelector("#splash");
+const splashStartedAt = performance.now();
 
 const views = {
   home: homeView,
@@ -17,6 +19,7 @@ const views = {
 store.subscribe(render);
 store.init().catch((error) => {
   app.innerHTML = `<main class="view"><section class="empty-state"><h1>Storage needs a reset</h1><p>${error.message}</p></section></main>`;
+  hideSplash();
 });
 
 if ("serviceWorker" in navigator) {
@@ -32,6 +35,18 @@ function render(state) {
   app.innerHTML = `${views[route](state)}${nav(route)}`;
   app.dataset.route = route;
   bindInteractiveControls();
+  hideSplash();
+}
+
+function hideSplash() {
+  if (!splash || splash.classList.contains("is-hidden")) return;
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const minimum = prefersReducedMotion ? 120 : 1150;
+  const elapsed = performance.now() - splashStartedAt;
+  window.setTimeout(() => {
+    splash.classList.add("is-hidden");
+    window.setTimeout(() => splash.remove(), prefersReducedMotion ? 80 : 650);
+  }, Math.max(0, minimum - elapsed));
 }
 
 document.addEventListener("click", (event) => {
