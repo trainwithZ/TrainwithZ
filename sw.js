@@ -1,17 +1,17 @@
-const CACHE = "trainwith-z-v15";
+const CACHE = "trainwith-z-v16";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./src/app.js?v=17",
-  "./src/styles.css?v=17",
+  "./src/app.js?v=18",
+  "./src/styles.css?v=18",
   "./src/core/analytics.js?v=1",
   "./src/core/db.js?v=3",
   "./src/core/insights.js?v=2",
   "./src/core/state.js?v=7",
   "./src/data/program.js?v=2",
   "./src/ui/components.js?v=3",
-  "./src/features/views.js?v=13",
+  "./src/features/views.js?v=14",
   "./assets/hero-athlete.png",
   "./assets/app-design-athlete.png",
   "./assets/app-design-athlete-crop.png",
@@ -44,6 +44,21 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  const requestUrl = new URL(event.request.url);
+  const isCoreFile = event.request.mode === "navigate" ||
+    [".html", ".js", ".css", ".webmanifest"].some((suffix) => requestUrl.pathname.endsWith(suffix));
+  if (isCoreFile) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+          return response;
+        })
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html")))
+    );
+    return;
+  }
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;

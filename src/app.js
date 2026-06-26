@@ -1,6 +1,6 @@
 import { store } from "./core/state.js?v=7";
 import { nav } from "./ui/components.js?v=3";
-import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=13";
+import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=14";
 
 const app = document.querySelector("#app");
 
@@ -114,44 +114,64 @@ app.addEventListener("change", (event) => {
   }
 });
 
+app.addEventListener("pointerdown", (event) => {
+  if (event.target.closest("input, textarea")) {
+    event.stopPropagation();
+  }
+}, true);
+
+app.addEventListener("click", (event) => {
+  if (event.target.closest("input, textarea")) {
+    event.stopPropagation();
+  }
+}, true);
+
 app.addEventListener("submit", async (event) => {
   const form = event.target.closest("[data-form]");
   if (!form) return;
   event.preventDefault();
+  if (form.dataset.form === "exercise") await saveExerciseForm(form);
+  if (form.dataset.form === "inbody") await saveInBodyForm(form);
+});
+
+async function saveExerciseForm(form) {
+  if (!form?.reportValidity()) return;
   const formData = new FormData(form);
   const values = Object.fromEntries(formData);
-  if (form.dataset.form === "exercise") {
-    const name = String(values.name || "").trim();
-    if (!name) return;
-    const exercise = {
-      id: `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${Date.now().toString(36)}`,
-      name,
-      muscle: String(values.muscle || "").trim(),
-      equipment: String(values.equipment || "Body / Free").trim(),
-      prescription: String(values.prescription || "3 x 10").trim(),
-      tip: String(values.tip || "").trim(),
-      editable: true
-    };
-    await store.saveExercise(exercise);
-    if (store.state.prefs.editingDayId) {
-      await store.addExerciseToDay(store.state.prefs.editingDayId, exercise.id);
-    }
-    store.setPrefs({ showExerciseForm: false });
-    form.reset();
+  const name = String(values.name || "").trim();
+  if (!name) return;
+  const exercise = {
+    id: `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${Date.now().toString(36)}`,
+    name,
+    muscle: String(values.muscle || "").trim(),
+    equipment: String(values.equipment || "Body / Free").trim(),
+    prescription: String(values.prescription || "3 x 10").trim(),
+    tip: String(values.tip || "").trim(),
+    editable: true
+  };
+  await store.saveExercise(exercise);
+  if (store.state.prefs.editingDayId) {
+    await store.addExerciseToDay(store.state.prefs.editingDayId, exercise.id);
   }
-  if (form.dataset.form === "inbody") {
-    const reportImage = formData.get("reportImage");
-    const scan = Object.fromEntries(Object.entries(values)
-      .filter(([key]) => key !== "reportImage")
-      .map(([key, value]) => [key, key === "date" ? value : Number(value)]));
-    if (reportImage instanceof File && reportImage.size) {
-      scan.reportImage = reportImage;
-    }
-    await store.addInBody(scan);
-    store.setPrefs({ showInBodyForm: false });
-    form.reset();
+  store.setPrefs({ showExerciseForm: false });
+  form.reset();
+}
+
+async function saveInBodyForm(form) {
+  if (!form?.reportValidity()) return;
+  const formData = new FormData(form);
+  const values = Object.fromEntries(formData);
+  const reportImage = formData.get("reportImage");
+  const scan = Object.fromEntries(Object.entries(values)
+    .filter(([key]) => key !== "reportImage")
+    .map(([key, value]) => [key, key === "date" ? value : Number(value)]));
+  if (reportImage instanceof File && reportImage.size) {
+    scan.reportImage = reportImage;
   }
-});
+  await store.addInBody(scan);
+  store.setPrefs({ showInBodyForm: false });
+  form.reset();
+}
 
 document.addEventListener("click", (event) => {
   const filter = event.target.closest("[data-filter]");
@@ -285,6 +305,7 @@ function handleManagementAction(actionTarget) {
   const action = actionTarget.dataset.action;
   const id = actionTarget.dataset.id;
   if (action === "toggle-exercise-form") store.setPrefs({ showExerciseForm: !store.state.prefs.showExerciseForm });
+  if (action === "save-exercise-form") saveExerciseForm(actionTarget.closest("form"));
   if (action === "delete-library-exercise" && window.confirm("Delete this exercise from your Library and program days?")) store.deleteExercise(id);
   if (action === "add-program-day") store.addProgramDay();
   if (action === "delete-program-day" && window.confirm("Delete this workout day?")) store.deleteProgramDay(id);
@@ -296,6 +317,7 @@ function handleManagementAction(actionTarget) {
   if (action === "move-day-exercise-up") store.moveExerciseInDay(actionTarget.dataset.day, id, -1);
   if (action === "move-day-exercise-down") store.moveExerciseInDay(actionTarget.dataset.day, id, 1);
   if (action === "toggle-inbody-form") store.setPrefs({ showInBodyForm: !store.state.prefs.showInBodyForm });
+  if (action === "save-inbody-form") saveInBodyForm(actionTarget.closest("form"));
   if (action === "log-water") store.logNutrition("water", 0.25);
   if (action === "log-protein") store.logNutrition("protein", 10);
   if (action === "remove-water") store.logNutrition("water", -0.25);

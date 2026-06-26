@@ -174,7 +174,7 @@ export function libraryView(state) {
           <label class="full-field">Form tip<textarea name="tip" placeholder="Short technique cue"></textarea></label>
           <div class="form-actions full-field">
             <button type="button" class="glass" data-action="toggle-exercise-form">Cancel</button>
-            <button class="primary" type="submit">Save exercise</button>
+            <button class="primary" type="button" data-action="save-exercise-form">Save exercise</button>
           </div>
         </form>` : ""}
       ${state.prefs.editingDayId ? `<section class="editing-context"><span>Adding to</span><strong>${state.program.find((day) => day.id === state.prefs.editingDayId)?.title || "workout day"}</strong><button data-action="finish-editing-day">Done</button></section>` : ""}
@@ -433,7 +433,7 @@ function inBodyForm() {
         <label><span>${label}</span><div><input name="${name}" type="number" step="0.1" inputmode="decimal" required><em>${unit}</em></div></label>`).join("")}
       <div class="form-actions full-field">
         <button type="button" class="glass" data-action="toggle-inbody-form">Cancel</button>
-        <button class="primary" type="submit">Save scan</button>
+        <button class="primary" type="button" data-action="save-inbody-form">Save scan</button>
       </div>
     </form>`;
 }
