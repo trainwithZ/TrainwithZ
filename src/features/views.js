@@ -210,7 +210,7 @@ export function analyticsView(state) {
       <section class="panel">
         <div class="panel-title"><div><p class="eyebrow">Body composition</p><h2>InBody tracking</h2></div><button class="primary compact" data-action="toggle-inbody-form">${svgIcon("plus")} Add scan</button></div>
         ${state.prefs.showInBodyForm ? inBodyForm() : ""}
-        ${latest ? inBodySummary(latest, previous) : `<div class="soft-empty"><p>Add your first InBody scan to track weight, muscle, fat, BMI, score, and segmental fat over time.</p></div>`}
+        ${latest ? inBodySummary(latest, previous) : `<div class="soft-empty"><p>Add your first InBody scan and optional report image to track weight, muscle, fat, BMI, score, and segmental fat over time.</p></div>`}
       </section>
       <section class="panel">
         <div class="panel-title"><h2>Progress photos</h2><label class="photo-upload">${svgIcon("camera")} Add<input type="file" accept="image/*" data-action="add-photo"></label></div>
@@ -408,6 +408,15 @@ function inBodyForm() {
   return `
     <form class="inbody-form" data-form="inbody">
       <label><span>Scan date</span><div><input name="date" type="date" value="${dateValue}" required></div></label>
+      <label class="full-field inbody-image-field">
+        <span>InBody report image</span>
+        <div class="image-input-shell">
+          ${svgIcon("camera")}
+          <strong>Add report photo</strong>
+          <small>Private on this device. Analysis uses the numbers below.</small>
+          <input name="reportImage" type="file" accept="image/*">
+        </div>
+      </label>
       ${[
         ["weight", "Weight", "kg"],
         ["muscle", "Skeletal muscle", "kg"],
@@ -448,6 +457,7 @@ function inBodySummary(latest, previous) {
   return `
     <div class="inbody-summary">
       <header><span>Latest scan</span><strong>${formatDate(latest.date, { month: "short", day: "numeric", year: "numeric" })}</strong></header>
+      ${latest.reportImage ? `<figure class="inbody-report"><img src="${URL.createObjectURL(latest.reportImage)}" alt="InBody report from ${formatDate(latest.date)}"><figcaption>Saved report image</figcaption></figure>` : ""}
       <div class="inbody-metrics">${metrics.map(([label, key, unit, higherIsBetter]) => {
         const delta = previous ? Number(latest[key]) - Number(previous[key]) : null;
         return `<article><span>${label}</span><strong>${latest[key]}${unit}</strong>${delta === null ? `<em>Baseline</em>` : `<em class="${metricTrend(delta, higherIsBetter)}">${signed(delta)}${unit}</em>`}</article>`;

@@ -1,6 +1,6 @@
-import { store } from "./core/state.js?v=6";
+import { store } from "./core/state.js?v=7";
 import { nav } from "./ui/components.js?v=3";
-import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=12";
+import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=13";
 
 const app = document.querySelector("#app");
 
@@ -114,15 +114,16 @@ app.addEventListener("change", (event) => {
   }
 });
 
-app.addEventListener("submit", (event) => {
+app.addEventListener("submit", async (event) => {
   const form = event.target.closest("[data-form]");
   if (!form) return;
   event.preventDefault();
-  const values = Object.fromEntries(new FormData(form));
+  const formData = new FormData(form);
+  const values = Object.fromEntries(formData);
   if (form.dataset.form === "exercise") {
     const name = String(values.name || "").trim();
     if (!name) return;
-    store.saveExercise({
+    const exercise = {
       id: `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${Date.now().toString(36)}`,
       name,
       muscle: String(values.muscle || "").trim(),
@@ -130,12 +131,25 @@ app.addEventListener("submit", (event) => {
       prescription: String(values.prescription || "3 x 10").trim(),
       tip: String(values.tip || "").trim(),
       editable: true
-    });
+    };
+    await store.saveExercise(exercise);
+    if (store.state.prefs.editingDayId) {
+      await store.addExerciseToDay(store.state.prefs.editingDayId, exercise.id);
+    }
     store.setPrefs({ showExerciseForm: false });
+    form.reset();
   }
   if (form.dataset.form === "inbody") {
-    store.addInBody(Object.fromEntries(Object.entries(values).map(([key, value]) => [key, key === "date" ? value : Number(value)])));
+    const reportImage = formData.get("reportImage");
+    const scan = Object.fromEntries(Object.entries(values)
+      .filter(([key]) => key !== "reportImage")
+      .map(([key, value]) => [key, key === "date" ? value : Number(value)]));
+    if (reportImage instanceof File && reportImage.size) {
+      scan.reportImage = reportImage;
+    }
+    await store.addInBody(scan);
     store.setPrefs({ showInBodyForm: false });
+    form.reset();
   }
 });
 
@@ -216,7 +230,7 @@ function bindInteractiveControls() {
       store.setRoute(button.dataset.route);
     };
   });
-  document.querySelectorAll("[data-action]").forEach((button) => {
+  document.querySelectorAll("button[data-action], label[data-action], [role='button'][data-action]").forEach((button) => {
     button.onclick = (event) => {
       event.stopPropagation();
       runAction(button);
