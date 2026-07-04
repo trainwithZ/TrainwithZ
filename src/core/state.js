@@ -1,5 +1,5 @@
 import { computeAnalytics, sessionVolume } from "./analytics.js?v=1";
-import { getAll, put, remove, seedExercises, uid } from "./db.js?v=3";
+import { getAll, put, remove, uid } from "./db.js?v=3";
 import { dailyInsight, weeklyInsight } from "./insights.js?v=2";
 import { getCyclePhase, getTodayWorkout, LIBRARY, PROGRAM } from "../data/program.js?v=2";
 
@@ -68,7 +68,7 @@ export const store = {
     const [sessions, photos, exercises, settings, inbody, nutrition] = await Promise.all([
       getAll("sessions"),
       getAll("photos"),
-      seedExercises(LIBRARY),
+      getAll("exercises"),
       getAll("settings"),
       getAll("inbody"),
       getAll("nutrition")
@@ -76,7 +76,7 @@ export const store = {
     this.state.sessions = sessions;
     this.state.photos = photos;
     this.state.exercises = exercises;
-    this.state.program = settings.find((item) => item.key === "program")?.value || structuredClone(PROGRAM);
+    this.state.program = settings.find((item) => item.key === "program")?.value || [];
     this.state.inbody = inbody;
     this.state.nutrition = nutrition;
     if (!settings.some((item) => item.key === "program")) {
@@ -283,15 +283,16 @@ export const store = {
         exercises
       });
     });
+    await Promise.all(this.state.exercises.map((exercise) => remove("exercises", exercise.id)));
     await Promise.all(importedExercises.map((exercise) => put("exercises", exercise)));
-    this.state.exercises = [...this.state.exercises, ...importedExercises];
-    this.state.program = [...importedDays, ...this.state.program].map((day, index) => ({ ...day, day: index + 1 }));
+    this.state.exercises = importedExercises;
+    this.state.program = importedDays.map((day, index) => ({ ...day, day: index + 1 }));
     await put("settings", { key: "program", value: this.state.program });
     this.state.prefs.route = "editor";
     this.state.prefs.expandedProgramDayId = importedDays[0]?.id || null;
     this.state.prefs.pdfImportStatus = {
       type: "success",
-      message: `Imported ${importedExercises.length} exercises from ${imported.sourceName || "PDF"} and placed them at the top.`
+      message: `Imported ${importedExercises.length} exercises from ${imported.sourceName || "PDF"} and replaced the old program.`
     };
     this.emit();
   },
