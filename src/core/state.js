@@ -15,7 +15,8 @@ const DEFAULT_PREFS = {
   theme: "light",
   themePickerOpen: false,
   libraryFilter: "All",
-  search: ""
+  search: "",
+  pdfImportStatus: null
 };
 
 const STORAGE_KEYS = {
@@ -250,6 +251,49 @@ export const store = {
       await put("exercises", libraryExercise);
     }
     await this.saveProgram();
+  },
+  async importWorkoutProgram(imported) {
+    const days = imported?.days || [];
+    if (!days.length) throw new Error("No workout days were found in that PDF.");
+    const importedAt = Date.now().toString(36);
+    const importedDays = [];
+    const importedExercises = [];
+    days.forEach((day, dayIndex) => {
+      const exercises = (day.exercises || []).map((exercise, exerciseIndex) => {
+        const id = uid(`pdf-${dayIndex + 1}-${exerciseIndex + 1}`);
+        const savedExercise = {
+          id,
+          name: exercise.name || `Imported Exercise ${exerciseIndex + 1}`,
+          muscle: exercise.muscle || "General",
+          equipment: exercise.equipment || "Imported",
+          prescription: exercise.prescription || "3 x 10",
+          tip: exercise.tip || "Imported from PDF. Review before training.",
+          editable: true,
+          source: imported.sourceName || "Workout PDF"
+        };
+        importedExercises.push(savedExercise);
+        return [savedExercise.id, savedExercise.name, savedExercise.muscle, savedExercise.prescription, savedExercise.tip];
+      });
+      importedDays.push({
+        id: uid(`pdf-day-${importedAt}-${dayIndex + 1}`),
+        day: this.state.program.length + importedDays.length + 1,
+        title: day.title || `Imported Day ${dayIndex + 1}`,
+        focus: [...new Set(exercises.map((exercise) => exercise[2]))],
+        tone: day.tone || `Imported from ${imported.sourceName || "PDF"}.`,
+        exercises
+      });
+    });
+    await Promise.all(importedExercises.map((exercise) => put("exercises", exercise)));
+    this.state.exercises = [...this.state.exercises, ...importedExercises];
+    this.state.program = [...this.state.program, ...importedDays].map((day, index) => ({ ...day, day: index + 1 }));
+    await put("settings", { key: "program", value: this.state.program });
+    this.state.prefs.route = "editor";
+    this.state.prefs.expandedProgramDayId = importedDays[0]?.id || null;
+    this.state.prefs.pdfImportStatus = {
+      type: "success",
+      message: `Imported ${importedExercises.length} exercises from ${imported.sourceName || "PDF"}.`
+    };
+    this.emit();
   },
   async saveProgram() {
     await put("settings", { key: "program", value: this.state.program });
