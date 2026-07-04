@@ -1,4 +1,4 @@
-const CACHE = "trainwith-z-v38";
+const CACHE = "trainwith-z-v39";
 const ASSETS = [
   "./",
   "./index.html",
