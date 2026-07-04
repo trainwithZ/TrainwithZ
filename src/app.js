@@ -1,6 +1,6 @@
-import { store } from "./core/state.js?v=7";
+import { store } from "./core/state.js?v=8";
 import { nav } from "./ui/components.js?v=3";
-import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=14";
+import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=24";
 
 const app = document.querySelector("#app");
 const splash = document.querySelector("#splash");
@@ -27,6 +27,7 @@ if ("serviceWorker" in navigator) {
 }
 
 function render(state) {
+  document.documentElement.dataset.theme = state.prefs.theme === "dark" ? "dark" : "light";
   if (!state.ready) {
     app.innerHTML = `<main class="view loading"><div class="pulse"></div><h1>TrainWith Z</h1><p>Hydrating your private training system.</p></main>`;
     return;
@@ -63,6 +64,10 @@ document.addEventListener("click", (event) => {
   if (action === "start-workout") {
     if (store.state.draft) store.setRoute("workout");
     else store.startWorkout();
+  }
+  if (action === "toggle-theme") {
+    store.setPrefs({ theme: store.state.prefs.theme === "dark" ? "light" : "dark", themePickerOpen: false });
+    return;
   }
   if (action === "start-program") {
     const day = store.state.program.find((item) => item.id === actionTarget.dataset.id) || store.state.program[0];
@@ -284,6 +289,10 @@ function runAction(actionTarget) {
   if (action === "start-workout") {
     if (store.state.draft) store.setRoute("workout");
     else store.startWorkout();
+  }
+  if (action === "toggle-theme") {
+    store.setPrefs({ theme: store.state.prefs.theme === "dark" ? "light" : "dark", themePickerOpen: false });
+    return;
   }
   if (action === "start-program") {
     const day = store.state.program.find((item) => item.id === actionTarget.dataset.id) || store.state.program[0];

@@ -12,6 +12,8 @@ const DEFAULT_PREFS = {
   expandedProgramDayId: null,
   calendarExpanded: true,
   cancelPrompt: false,
+  theme: "light",
+  themePickerOpen: false,
   libraryFilter: "All",
   search: ""
 };

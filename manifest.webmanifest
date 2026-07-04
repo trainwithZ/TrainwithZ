@@ -4,8 +4,8 @@
   "description": "Private offline-first AI fitness operating system.",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#05070B",
-  "theme_color": "#05070B",
+  "background_color": "#f6fbff",
+  "theme_color": "#f6fbff",
   "orientation": "portrait-primary",
   "icons": [
     {

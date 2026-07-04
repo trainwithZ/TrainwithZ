@@ -13,7 +13,6 @@
       <stop offset="1" stop-color="#147BFF" stop-opacity="0"/>
     </linearGradient>
   </defs>
-  <rect width="720" height="180" rx="36" fill="#05070B"/>
   <g transform="translate(26 18)">
     <path d="M40 38a72 72 0 0 1 104-4" fill="none" stroke="#147BFF" stroke-width="5" stroke-linecap="round" opacity=".82"/>
     <path d="M148 51a72 72 0 0 1-109 88" fill="none" stroke="#147BFF" stroke-width="5" stroke-linecap="round" opacity=".48"/>
@@ -24,5 +23,5 @@
     <path d="M20 94h45l8-16 12 48 12-65 13 49 9-16h54" fill="none" stroke="url(#logoPulse)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
   <text x="215" y="111" fill="#E6F2FF" font-size="54" font-family="Inter, Segoe UI, Arial, sans-serif" font-weight="650">TrainWith</text>
-  <text x="535" y="111" fill="#147BFF" font-size="58" font-family="Inter, Segoe UI, Arial, sans-serif" font-weight="760">Z</text>
+  <text x="505" y="111" fill="#E6F2FF" font-size="58" font-family="Inter, Segoe UI, Arial, sans-serif" font-weight="760">Z</text>
 </svg>
