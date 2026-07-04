@@ -269,7 +269,13 @@ export function editorView(state) {
       <section class="hub-actions">
         <button class="glass" data-route="library">${svgIcon("library")} Exercise Library</button>
         <button class="glass" data-route="history">${svgIcon("history")} Workout History</button>
+        <label class="glass pdf-import-button">${svgIcon("plus")} Import PDF<input type="file" accept="application/pdf,.pdf" data-action="import-workout-pdf"></label>
       </section>
+      ${state.prefs.pdfImportStatus ? `
+        <section class="pdf-import-status ${state.prefs.pdfImportStatus.type}">
+          <div><strong>${state.prefs.pdfImportStatus.type === "error" ? "Import needs review" : state.prefs.pdfImportStatus.type === "loading" ? "Reading PDF" : "Workout imported"}</strong><p>${escapeHtml(state.prefs.pdfImportStatus.message)}</p></div>
+          ${state.prefs.pdfImportStatus.type !== "loading" ? `<button data-action="clear-pdf-import" aria-label="Dismiss import message">&times;</button>` : ""}
+        </section>` : ""}
       <section class="program-editor-list">${state.program.map((day, index) => `
         <article class="program-editor-card ${state.prefs.expandedProgramDayId === day.id ? "expanded" : "collapsed"}">
           <header>
@@ -532,4 +538,8 @@ function signed(value) {
 
 function escapeAttribute(value = "") {
   return String(value).replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+
+function escapeHtml(value = "") {
+  return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
