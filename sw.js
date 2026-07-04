@@ -1,14 +1,14 @@
-const CACHE = "trainwith-z-v40";
+const CACHE = "trainwith-z-v41";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./src/app.js?v=31",
+  "./src/app.js?v=32",
   "./src/styles.css?v=30",
   "./src/core/analytics.js?v=1",
   "./src/core/db.js?v=3",
   "./src/core/insights.js?v=2",
-  "./src/core/state.js?v=10",
+  "./src/core/state.js?v=11",
   "./src/core/pdf-importer.js?v=1",
   "./src/data/program.js?v=2",
   "./src/ui/components.js?v=3",
