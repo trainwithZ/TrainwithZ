@@ -285,13 +285,13 @@ export const store = {
     });
     await Promise.all(importedExercises.map((exercise) => put("exercises", exercise)));
     this.state.exercises = [...this.state.exercises, ...importedExercises];
-    this.state.program = [...this.state.program, ...importedDays].map((day, index) => ({ ...day, day: index + 1 }));
+    this.state.program = [...importedDays, ...this.state.program].map((day, index) => ({ ...day, day: index + 1 }));
     await put("settings", { key: "program", value: this.state.program });
     this.state.prefs.route = "editor";
     this.state.prefs.expandedProgramDayId = importedDays[0]?.id || null;
     this.state.prefs.pdfImportStatus = {
       type: "success",
-      message: `Imported ${importedExercises.length} exercises from ${imported.sourceName || "PDF"}.`
+      message: `Imported ${importedExercises.length} exercises from ${imported.sourceName || "PDF"} and placed them at the top.`
     };
     this.emit();
   },
