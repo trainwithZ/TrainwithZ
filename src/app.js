@@ -1,6 +1,7 @@
-import { store } from "./core/state.js?v=8";
+import { store } from "./core/state.js?v=9";
+import { parseWorkoutPdf } from "./core/pdf-importer.js?v=1";
 import { nav } from "./ui/components.js?v=3";
-import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=24";
+import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=25";
 
 const app = document.querySelector("#app");
 const splash = document.querySelector("#splash");
@@ -121,6 +122,9 @@ app.addEventListener("change", (event) => {
 
   const fileInput = event.target.closest('[data-action="add-photo"]');
   if (fileInput?.files?.[0]) store.addPhoto(fileInput.files[0]);
+
+  const workoutPdfInput = event.target.closest('[data-action="import-workout-pdf"]');
+  if (workoutPdfInput?.files?.[0]) importWorkoutPdf(workoutPdfInput);
 
   const titleInput = event.target.closest('[data-action="program-day-title"]');
   if (titleInput) store.updateProgramDay(titleInput.dataset.id, { title: titleInput.value.trim() || "Training Day" });
@@ -360,6 +364,7 @@ function handleManagementAction(actionTarget) {
   if (action === "delete-history-session" && window.confirm("Delete this logged workout permanently?")) {
     store.deleteSession(id);
   }
+  if (action === "clear-pdf-import") store.setPrefs({ pdfImportStatus: null });
   if (action === "toggle-calendar") store.setPrefs({ calendarExpanded: !store.state.prefs.calendarExpanded });
   if (action === "add-workout-set") {
     store.updateDraft((draft) => {
@@ -382,5 +387,29 @@ function handleManagementAction(actionTarget) {
         .filter((set) => set.id !== actionTarget.dataset.set)
         .map((set, index) => ({ ...set, index: index + 1 }));
     });
+  }
+}
+
+async function importWorkoutPdf(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  store.setPrefs({
+    pdfImportStatus: {
+      type: "loading",
+      message: `Reading ${file.name} and looking for workout days, exercises, sets, and reps.`
+    }
+  });
+  try {
+    const imported = await parseWorkoutPdf(file);
+    await store.importWorkoutProgram(imported);
+  } catch (error) {
+    store.setPrefs({
+      pdfImportStatus: {
+        type: "error",
+        message: error.message || "This PDF could not be imported. Try a file with selectable text."
+      }
+    });
+  } finally {
+    input.value = "";
   }
 }
