@@ -1068,6 +1068,70 @@ textarea { min-height: 78px; padding: 12px; resize: vertical; }
   min-height: 54px;
 }
 
+.pdf-import-button {
+  position: relative;
+  min-height: 54px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.pdf-import-button input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.pdf-import-status {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  margin: 12px 0;
+  padding: 14px;
+  border: 1px solid rgba(124,200,255,.24);
+  border-radius: 8px;
+  background: rgba(20,123,255,.065);
+}
+
+.pdf-import-status strong,
+.pdf-import-status p {
+  display: block;
+  margin: 0;
+}
+
+.pdf-import-status strong {
+  font-size: .92rem;
+}
+
+.pdf-import-status p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: .82rem;
+}
+
+.pdf-import-status button {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  color: var(--soft);
+  background: rgba(20,123,255,.08);
+  font-size: 1.2rem;
+}
+
+.pdf-import-status.success {
+  border-color: rgba(157,255,200,.28);
+  background: rgba(157,255,200,.08);
+}
+
+.pdf-import-status.error {
+  border-color: rgba(255,143,163,.28);
+  background: rgba(255,143,163,.08);
+}
+
 .finish-bar {
   position: sticky;
   bottom: calc(var(--nav-h) + 22px);
