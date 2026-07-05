@@ -901,6 +901,72 @@ svg { width: 19px; height: 19px; fill: currentColor; flex: 0 0 auto; }
 .metric em { color: var(--accent-2); font-size: 0.78rem; font-style: normal; }
 
 .panel { padding: 16px; margin: 14px 0; }
+.program-overview-panel {
+  position: relative;
+  padding-right: 58px;
+}
+.program-select-star {
+  position: absolute;
+  top: -16px;
+  right: 18px;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0;
+  border: 0;
+  color: var(--soft);
+  background: transparent;
+}
+.program-select-star svg {
+  width: 23px;
+  height: 23px;
+  filter: drop-shadow(0 0 8px rgba(20, 123, 255, .3));
+}
+.program-select-star i {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--electric);
+}
+.program-select-star.active {
+  color: var(--electric);
+}
+.bulk-delete-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 8px;
+  align-items: center;
+  margin: -2px 0 14px;
+  padding: 10px;
+  border: 1px solid rgba(124,200,255,.22);
+  border-radius: 8px;
+  background: rgba(20,123,255,.055);
+}
+.bulk-delete-bar span {
+  min-width: 0;
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.bulk-delete-bar button {
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 7px;
+  color: var(--soft);
+  background: rgba(20,123,255,.08);
+  font-size: .72rem;
+  font-weight: 800;
+}
+.bulk-delete-bar .danger-mini {
+  color: #21070c;
+  background: var(--danger);
+}
 .inline-action { margin-top: 8px; }
 .split-panel {
   display: grid;
@@ -1698,13 +1764,19 @@ textarea { min-height: 78px; padding: 12px; resize: vertical; }
     font-size: .68rem;
   }
   .editor-head + .panel {
-    padding: 14px;
+    padding: 14px 52px 14px 14px;
   }
   .editor-head + .panel h2 {
     font-size: 1rem;
   }
   .editor-head + .panel p {
     font-size: .92rem;
+  }
+  .bulk-delete-bar {
+    grid-template-columns: 1fr 1fr;
+  }
+  .bulk-delete-bar span {
+    grid-column: 1 / -1;
   }
   .form-grid, .inbody-form { grid-template-columns: 1fr; }
   .form-grid h2, .full-field { grid-column: auto; }
@@ -1760,6 +1832,34 @@ textarea { min-height: 78px; padding: 12px; resize: vertical; }
 
 .program-exercises > .program-exercise-row {
   grid-template-columns: 1fr;
+}
+.program-exercises > .program-exercise-row.selecting {
+  padding-left: 34px;
+}
+.exercise-select-box {
+  position: absolute;
+  top: 14px;
+  left: 0;
+  width: 22px;
+  height: 22px;
+}
+.exercise-select-box input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+.exercise-select-box span {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(124,200,255,.42);
+  border-radius: 50%;
+  background: rgba(20,123,255,.055);
+}
+.exercise-select-box input:checked + span {
+  border-color: transparent;
+  background: var(--accent);
+  box-shadow: inset 0 0 0 5px rgba(255,255,255,.9);
 }
 .program-exercise-name {
   display: grid;
