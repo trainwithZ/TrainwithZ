@@ -5,6 +5,7 @@ export const icon = {
   chart: "M4 19V5h2v14H4Zm5 0v-8h2v8H9Zm5 0V8h2v11h-2Zm5 0V3h2v16h-2Z",
   history: "M12 4a8 8 0 1 1-7.5 5.3H2l3.5-4L9 9.3H6.6A6 6 0 1 0 12 6v5l4 2-.8 1.8-5.2-2.6V4h2Z",
   spark: "M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9L12 2Z",
+  bolt: "M13 2 4 14h7l-1 8 10-13h-7l1-7Z",
   plus: "M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z",
   check: "m9 16.2-4.2-4.2L3.4 13.4 9 19 21 7l-1.4-1.4L9 16.2Z",
   swap: "M7 7h11l-3-3 1.4-1.4L22 8l-5.6 5.4L15 12l3-3H7V7Zm10 10H6l3 3-1.4 1.4L2 16l5.6-5.4L9 12l-3 3h11v2Z",
