@@ -307,6 +307,7 @@ export function editorView(state) {
             const notes = exercise.tip || exercise[4] || "";
             return `
             <div class="program-exercise-row">
+              <button class="exercise-remove-button" data-action="remove-day-exercise" data-day="${day.id}" data-id="${id}" aria-label="Remove exercise" title="Remove exercise">×</button>
               <label class="program-exercise-name">Exercise<input data-action="program-exercise-name" data-day="${day.id}" data-id="${id}" value="${escapeAttribute(exercise.name || exercise[1] || "")}" placeholder="Exercise name"></label>
               <label class="plan-field">Sets & Reps<input inputmode="text" value="${escapeAttribute(formatPlan(plan.sets, plan.reps))}" data-action="program-exercise-plan" data-day="${day.id}" data-id="${id}" aria-label="Sets and reps" placeholder="3 x 10"></label>
               ${notes || state.prefs.openExerciseNoteId === id ? `<label class="exercise-notes-field">NOTE<textarea data-action="program-exercise-notes" data-day="${day.id}" data-id="${id}" placeholder="Optional note">${escapeHtml(notes)}</textarea></label><button class="note-link" data-action="remove-program-exercise-notes" data-day="${day.id}" data-id="${id}">Remove NOTE</button>` : `<button class="note-link add-exercise-notes" data-action="show-program-exercise-notes" data-id="${id}">NOTE</button>`}
