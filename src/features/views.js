@@ -258,13 +258,29 @@ export function historyView(state) {
 }
 
 export function editorView(state) {
+  const selectionMode = Boolean(state.prefs.exerciseSelectionMode);
+  const selectedExerciseKeys = new Set(state.prefs.selectedProgramExerciseKeys || []);
+  const totalExerciseCount = state.program.reduce((count, day) => count + day.exercises.length, 0);
+  const selectedCount = selectedExerciseKeys.size;
+  const confirmDelete = Boolean(state.prefs.confirmExerciseDelete);
   return `
     <main class="view">
       <header class="page-head editor-head">
         <div><p class="eyebrow">Workouts</p><h1>Training hub</h1></div>
         <button class="primary compact" data-action="add-program-day">${svgIcon("plus")} Add Workout</button>
       </header>
-      <section class="panel"><h2>Your current program</h2><p>Days run in the order shown. Reorder them anytime, replace exercises, or build a completely new month.</p></section>
+      <section class="panel program-overview-panel">
+        <button class="program-select-star ${selectionMode ? "active" : ""}" data-action="toggle-exercise-selection-mode" aria-label="Select exercises to delete" title="Select exercises to delete">${svgIcon("spark")}<i></i></button>
+        <h2>Your current program</h2>
+        <p>Days run in the order shown. Reorder them anytime, replace exercises, or build a completely new month.</p>
+      </section>
+      ${selectionMode ? `
+        <section class="bulk-delete-bar">
+          <span>${confirmDelete ? "Delete selected exercises?" : selectedCount ? `${selectedCount} selected` : "Choose exercises to delete"}</span>
+          <button data-action="select-all-program-exercises" ${totalExerciseCount ? "" : "disabled"}>Select all</button>
+          <button data-action="clear-selected-program-exercises" ${selectedCount ? "" : "disabled"}>Clear</button>
+          <button class="danger-mini ${confirmDelete ? "confirming" : ""}" data-action="delete-selected-program-exercises" ${selectedCount ? "" : "disabled"}>${confirmDelete ? "Confirm" : "Delete"}</button>
+        </section>` : ""}
       <section class="hub-actions">
         <button class="glass" data-action="toggle-last-schedule">${svgIcon("history")} Last Schedule</button>
         <button class="glass" data-route="history">${svgIcon("history")} Workout History</button>
@@ -305,9 +321,10 @@ export function editorView(state) {
             const plan = parsePrescription(exercise.prescription || exercise[3]);
             const id = exercise.id || exercise[0];
             const notes = exercise.tip || exercise[4] || "";
+            const selectionKey = `${day.id}::${id}`;
             return `
-            <div class="program-exercise-row">
-              <button class="exercise-remove-button" data-action="remove-day-exercise" data-day="${day.id}" data-id="${id}" aria-label="Remove exercise" title="Remove exercise">×</button>
+            <div class="program-exercise-row ${selectionMode ? "selecting" : ""}">
+              ${selectionMode ? `<label class="exercise-select-box" aria-label="Select exercise"><input type="checkbox" data-action="toggle-program-exercise-selection" data-key="${selectionKey}" ${selectedExerciseKeys.has(selectionKey) ? "checked" : ""}><span></span></label>` : `<button class="exercise-remove-button" data-action="remove-day-exercise" data-day="${day.id}" data-id="${id}" aria-label="Remove exercise" title="Remove exercise">&times;</button>`}
               <label class="program-exercise-name">Exercise<input data-action="program-exercise-name" data-day="${day.id}" data-id="${id}" value="${escapeAttribute(exercise.name || exercise[1] || "")}" placeholder="Exercise name"></label>
               <label class="plan-field">Sets & Reps<input inputmode="text" value="${escapeAttribute(formatPlan(plan.sets, plan.reps))}" data-action="program-exercise-plan" data-day="${day.id}" data-id="${id}" aria-label="Sets and reps" placeholder="3 x 10"></label>
               ${notes || state.prefs.openExerciseNoteId === id ? `<label class="exercise-notes-field">NOTE<textarea data-action="program-exercise-notes" data-day="${day.id}" data-id="${id}" placeholder="Optional note">${escapeHtml(notes)}</textarea></label><button class="note-link" data-action="remove-program-exercise-notes" data-day="${day.id}" data-id="${id}">Remove NOTE</button>` : `<button class="note-link add-exercise-notes" data-action="show-program-exercise-notes" data-id="${id}">NOTE</button>`}
