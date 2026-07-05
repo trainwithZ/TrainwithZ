@@ -1,18 +1,18 @@
-const CACHE = "trainwith-z-v63";
+const CACHE = "trainwith-z-v64";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./src/app.js?v=48",
-  "./src/styles.css?v=44",
+  "./src/app.js?v=49",
+  "./src/styles.css?v=45",
   "./src/core/analytics.js?v=1",
   "./src/core/db.js?v=3",
   "./src/core/insights.js?v=2",
-  "./src/core/state.js?v=16",
+  "./src/core/state.js?v=17",
   "./src/core/pdf-importer.js?v=1",
   "./src/data/program.js?v=2",
   "./src/ui/components.js?v=5",
-  "./src/features/views.js?v=38",
+  "./src/features/views.js?v=39",
   "./assets/hero-athlete.png",
   "./assets/app-design-athlete.png",
   "./assets/app-design-athlete-crop.png",
