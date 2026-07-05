@@ -1,7 +1,7 @@
 import { store } from "./core/state.js?v=16";
 import { parseWorkoutPdf } from "./core/pdf-importer.js?v=1";
 import { nav } from "./ui/components.js?v=5";
-import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=37";
+import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=38";
 
 const app = document.querySelector("#app");
 const splash = document.querySelector("#splash");
