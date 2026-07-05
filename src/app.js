@@ -1,7 +1,7 @@
-import { store } from "./core/state.js?v=11";
+import { store } from "./core/state.js?v=15";
 import { parseWorkoutPdf } from "./core/pdf-importer.js?v=1";
-import { nav } from "./ui/components.js?v=3";
-import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=25";
+import { nav } from "./ui/components.js?v=4";
+import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=35";
 
 const app = document.querySelector("#app");
 const splash = document.querySelector("#splash");
@@ -129,12 +129,34 @@ app.addEventListener("change", (event) => {
   const titleInput = event.target.closest('[data-action="program-day-title"]');
   if (titleInput) store.updateProgramDay(titleInput.dataset.id, { title: titleInput.value.trim() || "Training Day" });
 
-  const planInput = event.target.closest('[data-action="program-exercise-sets"], [data-action="program-exercise-reps"]');
+  const warmupToggle = event.target.closest('[data-action="program-day-warmup-enabled"]');
+  if (warmupToggle) store.setWarmUpEnabled(warmupToggle.dataset.id, warmupToggle.checked);
+
+  const warmupInput = event.target.closest('[data-action="warmup-name"], [data-action="warmup-plan"], [data-action="warmup-notes"]');
+  if (warmupInput) {
+    if (warmupInput.dataset.action === "warmup-plan") {
+      const plan = splitPlan(warmupInput.value);
+      store.updateWarmUpExercise(warmupInput.dataset.day, warmupInput.dataset.id, plan);
+    } else {
+      const field = warmupInput.dataset.action === "warmup-name" ? "name" : "notes";
+      store.updateWarmUpExercise(warmupInput.dataset.day, warmupInput.dataset.id, { [field]: warmupInput.value.trim() });
+    }
+  }
+
+  const planInput = event.target.closest('[data-action="program-exercise-plan"]');
   if (planInput) {
-    const row = planInput.closest(".program-exercise-row");
-    const sets = row.querySelector('[data-action="program-exercise-sets"]').value;
-    const reps = row.querySelector('[data-action="program-exercise-reps"]').value;
-    store.updateProgramExercisePlan(planInput.dataset.day, planInput.dataset.id, sets, reps);
+    const plan = splitPlan(planInput.value);
+    store.updateProgramExercisePlan(planInput.dataset.day, planInput.dataset.id, plan.sets, plan.reps);
+  }
+
+  const programExerciseName = event.target.closest('[data-action="program-exercise-name"]');
+  if (programExerciseName) {
+    store.updateProgramExerciseName(programExerciseName.dataset.day, programExerciseName.dataset.id, programExerciseName.value);
+  }
+
+  const programExerciseNotes = event.target.closest('[data-action="program-exercise-notes"]');
+  if (programExerciseNotes) {
+    store.updateProgramExerciseNotes(programExerciseNotes.dataset.day, programExerciseNotes.dataset.id, programExerciseNotes.value);
   }
 });
 
@@ -167,8 +189,8 @@ async function saveExerciseForm(form) {
   const exercise = {
     id: `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${Date.now().toString(36)}`,
     name,
-    muscle: String(values.muscle || "").trim(),
-    equipment: String(values.equipment || "Body / Free").trim(),
+    muscle: "General",
+    equipment: "Custom",
     prescription: String(values.prescription || "3 x 10").trim(),
     tip: String(values.tip || "").trim(),
     editable: true
@@ -335,16 +357,32 @@ function handleManagementAction(actionTarget) {
   if (action === "toggle-exercise-form") store.setPrefs({ showExerciseForm: !store.state.prefs.showExerciseForm });
   if (action === "save-exercise-form") saveExerciseForm(actionTarget.closest("form"));
   if (action === "delete-library-exercise" && window.confirm("Delete this exercise from your Library and program days?")) store.deleteExercise(id);
-  if (action === "add-program-day") store.addProgramDay();
+  if (action === "add-program-day") {
+    store.addProgramDay().then((dayId) => scrollDayIntoView(dayId));
+  }
   if (action === "delete-program-day" && window.confirm("Delete this workout day?")) store.deleteProgramDay(id);
   if (action === "move-day-up") store.moveProgramDay(id, -1);
   if (action === "move-day-down") store.moveProgramDay(id, 1);
   if (action === "choose-day-exercises") store.setPrefs({ editingDayId: id, route: "library" });
   if (action === "finish-editing-day") store.setPrefs({ editingDayId: null, route: "editor" });
+  if (action === "add-blank-exercise") store.addBlankExerciseToDay(id);
   if (action === "remove-day-exercise") store.removeExerciseFromDay(actionTarget.dataset.day, id);
   if (action === "move-day-exercise-up") store.moveExerciseInDay(actionTarget.dataset.day, id, -1);
   if (action === "move-day-exercise-down") store.moveExerciseInDay(actionTarget.dataset.day, id, 1);
+  if (action === "add-warmup-exercise") store.addWarmUpExercise(id);
+  if (action === "remove-warmup-exercise") store.removeWarmUpExercise(actionTarget.dataset.day, id);
+  if (action === "show-warmup-notes") store.setPrefs({ openWarmUpNoteId: id });
+  if (action === "remove-warmup-notes") {
+    store.updateWarmUpExercise(actionTarget.dataset.day, id, { notes: "" });
+    store.setPrefs({ openWarmUpNoteId: null });
+  }
+  if (action === "show-program-exercise-notes") store.setPrefs({ openExerciseNoteId: id });
+  if (action === "remove-program-exercise-notes") {
+    store.updateProgramExerciseNotes(actionTarget.dataset.day, id, "");
+    store.setPrefs({ openExerciseNoteId: null });
+  }
   if (action === "toggle-inbody-form") store.setPrefs({ showInBodyForm: !store.state.prefs.showInBodyForm });
+  if (action === "toggle-last-schedule") store.setPrefs({ lastScheduleOpen: !store.state.prefs.lastScheduleOpen });
   if (action === "save-inbody-form") saveInBodyForm(actionTarget.closest("form"));
   if (action === "log-water") store.logNutrition("water", 0.25);
   if (action === "log-protein") store.logNutrition("protein", 10);
@@ -388,6 +426,20 @@ function handleManagementAction(actionTarget) {
         .map((set, index) => ({ ...set, index: index + 1 }));
     });
   }
+}
+
+function scrollDayIntoView(dayId) {
+  window.requestAnimationFrame(() => {
+    document.querySelector(`[data-day-card="${CSS.escape(dayId)}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+}
+
+function splitPlan(value) {
+  const [sets = "", ...rest] = String(value || "").split(/\s+x\s+/i);
+  return {
+    sets: sets.trim(),
+    reps: rest.join(" x ").trim()
+  };
 }
 
 async function importWorkoutPdf(input) {
