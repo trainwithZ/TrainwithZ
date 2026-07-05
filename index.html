@@ -32,37 +32,3 @@
     <script type="module" src="src/app.js?v=46"></script>
   </body>
 </html>
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#f6fbff">
-    <meta name="description" content="TrainWith Z is a private offline-first AI fitness operating system.">
-    <script>
-      try {
-        const prefs = JSON.parse(localStorage.getItem("trainwithz:prefs") || "{}");
-        document.documentElement.dataset.theme = prefs.theme === "dark" ? "dark" : "light";
-      } catch {
-        document.documentElement.dataset.theme = "light";
-      }
-    </script>
-    <link rel="manifest" href="manifest.webmanifest">
-    <link rel="apple-touch-icon" href="assets/icon-192.png">
-    <link rel="stylesheet" href="src/styles.css?v=40">
-    <title>TrainWith Z</title>
-  </head>
-  <body>
-    <div id="splash" class="splash-screen" aria-label="TrainWith Z loading">
-      <div class="splash-orbit">
-        <span></span>
-        <img src="assets/trainwith-z-mark.svg?v=3" alt="">
-      </div>
-      <h1>TrainWith Z</h1>
-      <p>Private training system</p>
-      <div class="splash-loader"><i></i></div>
-    </div>
-    <div id="app" class="app-shell" aria-live="polite"></div>
-    <script type="module" src="src/app.js?v=43"></script>
-  </body>
-</html>
