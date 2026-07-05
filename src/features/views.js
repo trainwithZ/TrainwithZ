@@ -113,6 +113,7 @@ export function workoutView(state) {
 
       <section class="exercise-focus-card">
         <div class="progress-line"><i style="width:${Math.round((completed / Math.max(total, 1)) * 100)}%"></i></div>
+        ${warmUpItemsFor(draft).length ? `<section class="workout-warmup"><strong>Warm Up</strong>${warmUpItemsFor(draft).map((item) => `<p><b>${escapeHtml(item.name || "Warm Up")}</b>${item.sets || item.reps ? ` <span>${escapeHtml([item.sets, item.reps].filter(Boolean).join(" x "))}</span>` : ""}${item.notes ? `<em>${escapeHtml(item.notes)}</em>` : ""}</p>`).join("")}</section>` : ""}
         <p>${exercise.tip}</p>
         <div class="set-list">
           ${exercise.sets.map((set) => `
@@ -170,8 +171,6 @@ export function libraryView(state) {
         <form class="panel form-grid" data-form="exercise">
           <h2>Add exercise</h2>
           <label>Name<input name="name" required placeholder="Exercise name"></label>
-          <label>Target muscle<input name="muscle" required placeholder="Glutes, Back..."></label>
-          <label>Equipment<input name="equipment" placeholder="Cable, Dumbbell..."></label>
           <label>Sets and reps<input name="prescription" placeholder="3 x 10"></label>
           <label class="full-field">Form tip<textarea name="tip" placeholder="Short technique cue"></textarea></label>
           <div class="form-actions full-field">
@@ -184,7 +183,7 @@ export function libraryView(state) {
       <div class="chip-scroll">${filters.map((filter) => `<button class="${state.prefs.libraryFilter === filter ? "active" : ""}" data-filter="${filter}">${filter}</button>`).join("")}</div>
       <section class="card-list">${filtered.map((exercise) => `
         <article class="library-card">
-          <div><h2>${exercise.name}</h2><p>${exercise.muscle} &middot; ${exercise.equipment}</p><span>${exercise.tip}</span></div>
+          <div><h2>${exercise.name}</h2><p>${exercise.prescription}</p><span>${exercise.tip}</span></div>
           <div class="library-actions">
             ${(state.draft || state.prefs.editingDayId) ? `<button class="icon-btn" data-action="add-library-exercise" data-id="${exercise.id}" aria-label="Add ${exercise.name}">${svgIcon("plus")}</button>` : ""}
             <button class="delete-icon" data-action="delete-library-exercise" data-id="${exercise.id}" aria-label="Delete ${exercise.name}">&times;</button>
@@ -263,52 +262,85 @@ export function editorView(state) {
     <main class="view">
       <header class="page-head editor-head">
         <div><p class="eyebrow">Workouts</p><h1>Training hub</h1></div>
-        <button class="primary compact" data-action="add-program-day">${svgIcon("plus")} Add day</button>
+        <button class="primary compact" data-action="add-program-day">${svgIcon("plus")} Add Workout</button>
       </header>
       <section class="panel"><h2>Your current program</h2><p>Days run in the order shown. Reorder them anytime, replace exercises, or build a completely new month.</p></section>
       <section class="hub-actions">
-        <button class="glass" data-route="library">${svgIcon("library")} Exercise Library</button>
+        <button class="glass" data-action="toggle-last-schedule">${svgIcon("history")} Last Schedule</button>
         <button class="glass" data-route="history">${svgIcon("history")} Workout History</button>
         <label class="glass pdf-import-button">${svgIcon("plus")} Import PDF<input type="file" accept="application/pdf,.pdf" data-action="import-workout-pdf"></label>
       </section>
+      ${state.prefs.lastScheduleOpen ? lastSchedulePanel(state) : ""}
       ${state.prefs.pdfImportStatus ? `
         <section class="pdf-import-status ${state.prefs.pdfImportStatus.type}">
           <div><strong>${state.prefs.pdfImportStatus.type === "error" ? "Import needs review" : state.prefs.pdfImportStatus.type === "loading" ? "Reading PDF" : "Workout imported"}</strong><p>${escapeHtml(state.prefs.pdfImportStatus.message)}</p></div>
           ${state.prefs.pdfImportStatus.type !== "loading" ? `<button data-action="clear-pdf-import" aria-label="Dismiss import message">&times;</button>` : ""}
         </section>` : ""}
       <section class="program-editor-list">${state.program.map((day, index) => `
-        <article class="program-editor-card ${state.prefs.expandedProgramDayId === day.id ? "expanded" : "collapsed"}">
+        <article class="program-editor-card ${state.prefs.expandedProgramDayId === day.id ? "expanded" : "collapsed"}" data-day-card="${day.id}">
           <header>
             <button class="program-day-toggle" data-action="toggle-program-day" data-id="${day.id}" aria-expanded="${state.prefs.expandedProgramDayId === day.id}">
               <span><small>Day ${index + 1}</small><strong>${day.title}</strong><em>${day.exercises.length} exercise${day.exercises.length === 1 ? "" : "s"}</em></span>
               <b>${state.prefs.expandedProgramDayId === day.id ? "&minus;" : "+"}</b>
             </button>
-            <div class="reorder-actions">
-              <button data-action="move-day-up" data-id="${day.id}" aria-label="Move day up">&uarr;</button>
-              <button data-action="move-day-down" data-id="${day.id}" aria-label="Move day down">&darr;</button>
-              <button class="delete-icon" data-action="delete-program-day" data-id="${day.id}" aria-label="Delete day">&times;</button>
-            </div>
           </header>
           ${state.prefs.expandedProgramDayId === day.id ? `
-          <div class="program-day-name"><label>Day name<input data-action="program-day-title" data-id="${day.id}" value="${escapeAttribute(day.title)}" aria-label="Day title"></label></div>
+          <div class="program-day-name"><label>Workout Title<input data-action="program-day-title" data-id="${day.id}" value="${escapeAttribute(day.title)}" aria-label="Workout title"></label></div>
+          <section class="warmup-editor">
+            <div class="warmup-head">
+              <label class="warmup-toggle">
+                <input type="checkbox" data-action="program-day-warmup-enabled" data-id="${day.id}" ${warmUpItemsFor(day).length ? "checked" : ""}>
+                <span>Warm Up</span>
+              </label>
+              ${warmUpItemsFor(day).length ? `<button class="glass compact" data-action="add-warmup-exercise" data-id="${day.id}">${svgIcon("plus")} Add</button>` : ""}
+            </div>
+            ${warmUpItemsFor(day).length ? `<div class="warmup-list">${warmUpItemsFor(day).map((item) => `
+              <article class="warmup-row">
+                <label>Exercise<input data-action="warmup-name" data-day="${day.id}" data-id="${item.id}" value="${escapeAttribute(item.name)}" placeholder="Warm up exercise"></label>
+                <label>Sets & Reps<input inputmode="text" data-action="warmup-plan" data-day="${day.id}" data-id="${item.id}" value="${escapeAttribute(formatPlan(item.sets, item.reps))}" placeholder="2 x 10, 12"></label>
+                ${item.notes || state.prefs.openWarmUpNoteId === item.id ? `<label class="warmup-notes">NOTE<textarea data-action="warmup-notes" data-day="${day.id}" data-id="${item.id}" placeholder="Optional note">${escapeHtml(item.notes)}</textarea></label><button class="note-link" data-action="remove-warmup-notes" data-day="${day.id}" data-id="${item.id}">Remove NOTE</button>` : `<button class="note-link warmup-add-notes" data-action="show-warmup-notes" data-id="${item.id}">NOTE</button>`}
+              </article>`).join("")}</div>` : ""}
+          </section>
           <div class="program-exercises">${day.exercises.length ? day.exercises.map((exercise, exerciseIndex) => {
             const plan = parsePrescription(exercise.prescription || exercise[3]);
+            const id = exercise.id || exercise[0];
+            const notes = exercise.tip || exercise[4] || "";
             return `
             <div class="program-exercise-row">
-              <span><b>${exercise.name || exercise[1]}</b><small>${exercise.muscle || exercise[2]}</small></span>
-              <label class="plan-field"><input type="number" min="1" max="20" value="${plan.sets}" data-action="program-exercise-sets" data-day="${day.id}" data-id="${exercise.id || exercise[0]}" aria-label="Sets"><small>sets</small></label>
-              <label class="plan-field"><input type="number" min="1" max="100" value="${plan.reps}" data-action="program-exercise-reps" data-day="${day.id}" data-id="${exercise.id || exercise[0]}" aria-label="Reps"><small>reps</small></label>
-              <button data-action="move-day-exercise-up" data-day="${day.id}" data-id="${exercise.id || exercise[0]}" aria-label="Move exercise up">&uarr;</button>
-              <button data-action="move-day-exercise-down" data-day="${day.id}" data-id="${exercise.id || exercise[0]}" aria-label="Move exercise down">&darr;</button>
-              <button class="delete-icon" data-action="remove-day-exercise" data-day="${day.id}" data-id="${exercise.id || exercise[0]}" aria-label="Remove exercise">&times;</button>
+              <label class="program-exercise-name">Exercise<input data-action="program-exercise-name" data-day="${day.id}" data-id="${id}" value="${escapeAttribute(exercise.name || exercise[1] || "")}" placeholder="Exercise name"></label>
+              <label class="plan-field">Sets & Reps<input inputmode="text" value="${escapeAttribute(formatPlan(plan.sets, plan.reps))}" data-action="program-exercise-plan" data-day="${day.id}" data-id="${id}" aria-label="Sets and reps" placeholder="3 x 10"></label>
+              ${notes || state.prefs.openExerciseNoteId === id ? `<label class="exercise-notes-field">NOTE<textarea data-action="program-exercise-notes" data-day="${day.id}" data-id="${id}" placeholder="Optional note">${escapeHtml(notes)}</textarea></label><button class="note-link" data-action="remove-program-exercise-notes" data-day="${day.id}" data-id="${id}">Remove NOTE</button>` : `<button class="note-link add-exercise-notes" data-action="show-program-exercise-notes" data-id="${id}">NOTE</button>`}
             </div>`;
-          }).join("") : "<p>No exercises yet. Add from your Library.</p>"}</div>
-          <footer>
-            <button class="glass" data-action="choose-day-exercises" data-id="${day.id}">${svgIcon("plus")} Add exercises</button>
-            <button class="primary compact" data-action="start-program" data-id="${day.id}" ${day.exercises.length ? "" : "disabled"}>${svgIcon("train")} Start</button>
+          }).join("") : "<p>No exercises yet. Import a PDF or add exercises later.</p>"}</div>
+          <footer class="workout-editor-actions">
+            <button class="tool-icon-button" data-action="add-blank-exercise" data-id="${day.id}" aria-label="Add exercise" title="Add exercise">${svgIcon("train")}</button>
+            <button class="tool-icon-button finish-workout-plan" data-action="start-program" data-id="${day.id}" ${day.exercises.length ? "" : "disabled"} aria-label="Finish workout setup" title="Finish workout setup"><span aria-hidden="true">⚡️</span></button>
           </footer>` : ""}
         </article>`).join("") || `<section class="soft-empty"><h2>No workout days</h2><p>Add your first day, then choose exercises from the Library.</p></section>`}</section>
     </main>`;
+}
+
+function lastSchedulePanel(state) {
+  const schedule = state.lastSchedules?.[0];
+  if (!schedule) {
+    return `<section class="last-schedule-panel soft-empty"><h2>Last Schedule</h2><p>No previous schedule saved yet. When you import a new PDF, the current schedule will move here automatically.</p></section>`;
+  }
+  return `
+    <section class="last-schedule-panel">
+      <header>
+        <div><p class="eyebrow">Last Schedule</p><h2>${escapeHtml(schedule.title)}</h2></div>
+        <span>${formatDate(schedule.startedAt, { month: "short", day: "numeric", year: "numeric" })} - ${formatDate(schedule.stoppedAt, { month: "short", day: "numeric", year: "numeric" })}</span>
+      </header>
+      <div class="last-schedule-days">
+        ${(schedule.days || []).map((day, index) => `
+          <article>
+            <small>Day ${index + 1}</small>
+            <strong>${escapeHtml(day.title)}</strong>
+            ${warmUpItemsFor(day).length ? `<p><b>Warm Up:</b> ${warmUpItemsFor(day).map((item) => escapeHtml(item.name || item.notes || "Warm Up")).join(", ")}</p>` : ""}
+            <ul>${(day.exercises || []).map((exercise) => `<li>${escapeHtml(exercise.name || exercise[1])}<span>${escapeHtml(exercise.prescription || exercise[3] || "")}</span></li>`).join("")}</ul>
+          </article>`).join("")}
+      </div>
+    </section>`;
 }
 
 export function weeklyView(state) {
@@ -426,10 +458,21 @@ function calendarCard(sessions, expanded) {
 }
 
 function parsePrescription(value = "") {
+  const [sets = "3", reps = "10"] = String(value).split(/\s+x\s+/i);
   return {
-    sets: Number((value.match(/^(\d+)/) || [])[1]) || 3,
-    reps: Number((value.match(/x\s*(\d+)/i) || [])[1]) || 10
+    sets: sets.trim() || "3",
+    reps: reps.trim() || "10"
   };
+}
+
+function formatPlan(sets = "", reps = "") {
+  return [sets, reps].filter(Boolean).join(" x ");
+}
+
+function warmUpItemsFor(day) {
+  if (Array.isArray(day?.warmUpItems)) return day.warmUpItems;
+  if (day?.warmUp) return [{ id: "legacy-warmup", name: "Warm Up", sets: "", reps: "", notes: day.warmUp }];
+  return [];
 }
 
 function todayNutrition(entries) {
