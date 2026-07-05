@@ -16,6 +16,9 @@ const DEFAULT_PREFS = {
   themePickerOpen: false,
   libraryFilter: "All",
   search: "",
+  exerciseSelectionMode: false,
+  selectedProgramExerciseKeys: [],
+  confirmExerciseDelete: false,
   pdfImportStatus: null
 };
 
@@ -263,6 +266,22 @@ export const store = {
     if (!day) return;
     day.exercises = day.exercises.filter((item) => item[0] !== exerciseId);
     day.focus = [...new Set(day.exercises.map((item) => item[2]))];
+    await this.saveProgram();
+  },
+  async removeSelectedProgramExercises(selectionKeys) {
+    const selection = new Set(selectionKeys || []);
+    if (!selection.size) return;
+    this.state.program = this.state.program.map((day) => {
+      const exercises = day.exercises.filter((exercise) => !selection.has(`${day.id}::${exercise[0]}`));
+      return {
+        ...day,
+        exercises,
+        focus: [...new Set(exercises.map((exercise) => exercise[2]))]
+      };
+    });
+    this.state.prefs.selectedProgramExerciseKeys = [];
+    this.state.prefs.exerciseSelectionMode = false;
+    this.state.prefs.confirmExerciseDelete = false;
     await this.saveProgram();
   },
   async moveExerciseInDay(dayId, exerciseId, delta) {
