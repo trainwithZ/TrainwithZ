@@ -1,7 +1,7 @@
-import { store } from "./core/state.js?v=16";
+import { store } from "./core/state.js?v=17";
 import { parseWorkoutPdf } from "./core/pdf-importer.js?v=1";
 import { nav } from "./ui/components.js?v=5";
-import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=38";
+import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=39";
 
 const app = document.querySelector("#app");
 const splash = document.querySelector("#splash");
@@ -150,6 +150,9 @@ app.addEventListener("change", (event) => {
 
   const warmupToggle = event.target.closest('[data-action="program-day-warmup-enabled"]');
   if (warmupToggle) store.setWarmUpEnabled(warmupToggle.dataset.id, warmupToggle.checked);
+
+  const exerciseSelection = event.target.closest('[data-action="toggle-program-exercise-selection"]');
+  if (exerciseSelection) toggleProgramExerciseSelection(exerciseSelection.dataset.key, exerciseSelection.checked);
 });
 
 app.addEventListener("pointerdown", (event) => {
@@ -362,6 +365,29 @@ function handleManagementAction(actionTarget) {
   if (action === "finish-editing-day") store.setPrefs({ editingDayId: null, route: "editor" });
   if (action === "add-blank-exercise") store.addBlankExerciseToDay(id);
   if (action === "remove-day-exercise") store.removeExerciseFromDay(actionTarget.dataset.day, id);
+  if (action === "toggle-exercise-selection-mode") {
+    store.setPrefs({
+      exerciseSelectionMode: !store.state.prefs.exerciseSelectionMode,
+      selectedProgramExerciseKeys: [],
+      confirmExerciseDelete: false
+    });
+  }
+  if (action === "select-all-program-exercises") {
+    store.setPrefs({ selectedProgramExerciseKeys: allProgramExerciseKeys(), confirmExerciseDelete: false });
+  }
+  if (action === "clear-selected-program-exercises") {
+    store.setPrefs({ selectedProgramExerciseKeys: [], confirmExerciseDelete: false });
+  }
+  if (action === "delete-selected-program-exercises") {
+    const selected = store.state.prefs.selectedProgramExerciseKeys || [];
+    if (selected.length && !store.state.prefs.confirmExerciseDelete) {
+      store.setPrefs({ confirmExerciseDelete: true });
+      return;
+    }
+    if (selected.length) {
+      store.removeSelectedProgramExercises(selected);
+    }
+  }
   if (action === "move-day-exercise-up") store.moveExerciseInDay(actionTarget.dataset.day, id, -1);
   if (action === "move-day-exercise-down") store.moveExerciseInDay(actionTarget.dataset.day, id, 1);
   if (action === "add-warmup-exercise") store.addWarmUpExercise(id);
@@ -427,6 +453,20 @@ function scrollDayIntoView(dayId) {
   window.requestAnimationFrame(() => {
     document.querySelector(`[data-day-card="${CSS.escape(dayId)}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
   });
+}
+
+function allProgramExerciseKeys() {
+  return store.state.program.flatMap((day) =>
+    day.exercises.map((exercise) => `${day.id}::${exercise[0]}`)
+  );
+}
+
+function toggleProgramExerciseSelection(key, checked) {
+  if (!key) return;
+  const selected = new Set(store.state.prefs.selectedProgramExerciseKeys || []);
+  if (checked) selected.add(key);
+  else selected.delete(key);
+  store.setPrefs({ selectedProgramExerciseKeys: [...selected], confirmExerciseDelete: false });
 }
 
 function splitPlan(value) {
