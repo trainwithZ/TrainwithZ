@@ -186,6 +186,12 @@ input:focus, textarea:focus { border-color: rgba(124, 200, 255, 0.75); box-shado
 .view {
   min-height: 100dvh;
   padding: max(20px, env(safe-area-inset-top)) 16px calc(var(--nav-h) + 24px);
+  animation: viewShiftIn .24s ease both;
+}
+
+@keyframes viewShiftIn {
+  from { opacity: .82; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .home-view { padding-top: 10px; }
@@ -948,6 +954,7 @@ svg { width: 19px; height: 19px; fill: currentColor; flex: 0 0 auto; }
   background: rgba(255, 255, 255, 0.78);
   backdrop-filter: blur(18px);
   box-shadow: 0 12px 30px rgba(20,80,140,.12);
+  transition: background .24s ease, box-shadow .24s ease, border-color .24s ease;
 }
 
 .bottom-nav button {
@@ -959,10 +966,17 @@ svg { width: 19px; height: 19px; fill: currentColor; flex: 0 0 auto; }
   background: transparent;
   color: var(--muted);
   font-size: .64rem;
+  transition: color .24s ease, background .24s ease, transform .24s ease, opacity .24s ease;
 }
 
 .bottom-nav button.active { color: var(--text); background: rgba(124, 200, 255, 0.12); }
-.bottom-nav svg { width: 16px; height: 16px; }
+.bottom-nav button:active { transform: scale(.96); }
+.bottom-nav svg {
+  width: 16px;
+  height: 16px;
+  transition: transform .24s ease, opacity .24s ease;
+}
+.bottom-nav button.active svg { transform: translateY(-1px); }
 
 .bottom-nav .nav-start {
   position: relative;
@@ -974,7 +988,10 @@ svg { width: 19px; height: 19px; fill: currentColor; flex: 0 0 auto; }
   width: 62px;
   height: 62px;
   justify-self: center;
+  transition: transform .24s ease, box-shadow .24s ease, filter .24s ease;
 }
+
+.bottom-nav .nav-start:active { transform: translateY(-14px) scale(.95); }
 
 .bottom-nav .nav-start span {
   position: absolute;
