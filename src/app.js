@@ -119,6 +119,20 @@ document.addEventListener("click", (event) => {
   handleManagementAction(actionTarget, event);
 });
 
+app.addEventListener("click", (event) => {
+  const clickedDayCard = event.target.closest(".program-editor-card");
+  if (
+    !store.state.prefs.daySelectionMode ||
+    !clickedDayCard ||
+    event.target.closest(".day-manage-trigger, .day-manage-actions, input, textarea, label, .day-selection-bar")
+  ) {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  toggleSelectedProgramDay(clickedDayCard.dataset.dayCard);
+}, true);
+
 app.addEventListener("input", (event) => {
   const target = event.target.closest("[data-action]");
   if (!target) return;
