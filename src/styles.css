@@ -1405,27 +1405,27 @@ textarea { min-height: 78px; padding: 12px; resize: vertical; }
 .day-manage-trigger {
   position: absolute;
   top: 28px;
-  left: -22px;
+  left: -9px;
   z-index: 5;
-  width: 20px !important;
+  width: 18px !important;
   height: 42px !important;
   min-height: 42px !important;
   padding: 0;
   border: 1px solid rgba(124,200,255,.18);
   border-radius: 8px;
-  background: rgba(20,123,255,.08);
-  opacity: .04;
+  background: rgba(20,123,255,.18);
+  opacity: .42;
   outline: 0;
 }
 .day-manage-trigger:focus-visible,
 .day-manage-trigger:hover,
 .program-editor-card.day-manage-open .day-manage-trigger {
-  opacity: .85;
+  opacity: .9;
 }
 .day-manage-actions {
   position: absolute;
   top: 76px;
-  left: -22px;
+  left: -9px;
   z-index: 6;
   display: grid;
   gap: 5px;
