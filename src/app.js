@@ -121,6 +121,11 @@ document.addEventListener("click", (event) => {
 
 app.addEventListener("click", (event) => {
   const clickedDayCard = event.target.closest(".program-editor-card");
+  if (Date.now() < suppressDayToggleClickUntil && clickedDayCard) {
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
   if (
     !store.state.prefs.daySelectionMode ||
     !clickedDayCard ||
