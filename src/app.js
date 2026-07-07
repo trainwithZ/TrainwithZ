@@ -1,7 +1,7 @@
-import { store } from "./core/state.js?v=18";
+import { store } from "./core/state.js?v=19";
 import { parseWorkoutPdf } from "./core/pdf-importer.js?v=1";
 import { nav } from "./ui/components.js?v=5";
-import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=48";
+import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=49";
 
 const app = document.querySelector("#app");
 const splash = document.querySelector("#splash");
@@ -61,6 +61,12 @@ document.addEventListener("click", (event) => {
   const actionTarget = event.target.closest("[data-action]");
   if (!actionTarget) return;
   const action = actionTarget.dataset.action;
+  if (store.state.prefs.daySelectionMode && action === "toggle-program-day") {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleSelectedProgramDay(actionTarget.dataset.id);
+    return;
+  }
 
   if (action === "start-workout") {
     if (store.state.draft) store.setRoute("workout");
@@ -202,7 +208,11 @@ app.addEventListener("pointerdown", (event) => {
     timer: window.setTimeout(() => {
       closeDayManageCards(card);
       closeSwipeRows();
-      card.classList.add("day-manage-open");
+      const dayId = card.dataset.dayCard;
+      store.setPrefs({
+        daySelectionMode: true,
+        selectedProgramDayIds: [...new Set([...(store.state.prefs.selectedProgramDayIds || []), dayId])]
+      });
       dayPressState.active = true;
       suppressDayToggleClickUntil = Date.now() + 900;
     }, 520)
@@ -470,6 +480,16 @@ function moveManagedDay(card, delta) {
   if (button && !button.disabled) button.click();
 }
 
+function toggleSelectedProgramDay(dayId) {
+  const selected = new Set(store.state.prefs.selectedProgramDayIds || []);
+  if (selected.has(dayId)) selected.delete(dayId);
+  else selected.add(dayId);
+  store.setPrefs({
+    daySelectionMode: selected.size > 0,
+    selectedProgramDayIds: [...selected]
+  });
+}
+
 function moveManagedRow(row, delta) {
   const action = row.dataset.reorderKind === "warmup"
     ? (delta < 0 ? "move-warmup-exercise-up" : "move-warmup-exercise-down")
@@ -488,6 +508,17 @@ function handleManagementAction(actionTarget, event) {
       closeSwipeRows();
       closeManageRows();
       card.classList.toggle("day-manage-open");
+    }
+    return;
+  }
+  if (action === "cancel-day-selection") {
+    store.setPrefs({ daySelectionMode: false, selectedProgramDayIds: [] });
+    return;
+  }
+  if (action === "delete-selected-program-days") {
+    const selected = store.state.prefs.selectedProgramDayIds || [];
+    if (selected.length && window.confirm(`Delete ${selected.length} selected workout${selected.length === 1 ? "" : "s"}?`)) {
+      store.removeSelectedProgramDays(selected);
     }
     return;
   }
