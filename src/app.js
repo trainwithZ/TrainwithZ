@@ -410,6 +410,10 @@ function bindInteractiveControls() {
 
 function runAction(actionTarget) {
   const action = actionTarget.dataset.action;
+  if (store.state.prefs.daySelectionMode && action === "toggle-program-day") {
+    toggleSelectedProgramDay(actionTarget.dataset.id);
+    return;
+  }
   if (action === "start-workout") {
     if (store.state.draft) store.setRoute("workout");
     else store.startWorkout();
