@@ -58,6 +58,18 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const clickedDayCard = event.target.closest(".program-editor-card");
+  if (
+    store.state.prefs.daySelectionMode &&
+    clickedDayCard &&
+    !event.target.closest(".day-manage-trigger, .day-manage-actions, input, textarea, label")
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleSelectedProgramDay(clickedDayCard.dataset.dayCard);
+    return;
+  }
+
   const actionTarget = event.target.closest("[data-action]");
   if (!actionTarget) return;
   const action = actionTarget.dataset.action;
@@ -215,7 +227,7 @@ app.addEventListener("pointerdown", (event) => {
       });
       dayPressState.active = true;
       suppressDayToggleClickUntil = Date.now() + 900;
-    }, 520)
+    }, 430)
   };
 }, true);
 
@@ -223,7 +235,7 @@ app.addEventListener("pointermove", (event) => {
   if (!dayPressState) return;
   const deltaX = event.clientX - dayPressState.startX;
   const deltaY = event.clientY - dayPressState.startY;
-  if (!dayPressState.active && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
+  if (!dayPressState.active && (Math.abs(deltaX) > 28 || Math.abs(deltaY) > 28)) {
     window.clearTimeout(dayPressState.timer);
   }
   if (dayPressState.active && !dayPressState.used && Math.abs(deltaY) > 58 && Math.abs(deltaY) > Math.abs(deltaX)) {
