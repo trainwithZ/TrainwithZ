@@ -1,9 +1,9 @@
-const CACHE = "trainwith-z-v88";
+const CACHE = "trainwith-z-v89";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./src/app.js?v=66",
+  "./src/app.js?v=67",
   "./src/styles.css?v=61",
   "./src/core/analytics.js?v=1",
   "./src/core/db.js?v=3",
