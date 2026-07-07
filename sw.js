@@ -1,10 +1,10 @@
-const CACHE = "trainwith-z-v84";
+const CACHE = "trainwith-z-v85";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./src/app.js?v=63",
-  "./src/styles.css?v=59",
+  "./src/styles.css?v=60",
   "./src/core/analytics.js?v=1",
   "./src/core/db.js?v=3",
   "./src/core/insights.js?v=2",
