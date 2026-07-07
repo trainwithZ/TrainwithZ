@@ -278,6 +278,12 @@ export function editorView(state) {
         </section>` : ""}
       <section class="program-editor-list">${state.program.map((day, index) => `
         <article class="program-editor-card ${state.prefs.expandedProgramDayId === day.id ? "expanded" : "collapsed"}" data-day-card="${day.id}">
+          <button class="day-manage-trigger" data-action="toggle-day-manage" data-id="${day.id}" aria-label="Manage day ${index + 1}" title="Manage day"></button>
+          <div class="day-manage-actions">
+            <button data-action="delete-program-day" data-id="${day.id}" aria-label="Delete day ${index + 1}">&times;</button>
+            <button data-action="move-day-up" data-id="${day.id}" ${index === 0 ? "disabled" : ""} aria-label="Move day ${index + 1} up">↑</button>
+            <button data-action="move-day-down" data-id="${day.id}" ${index === state.program.length - 1 ? "disabled" : ""} aria-label="Move day ${index + 1} down">↓</button>
+          </div>
           <header>
             <button class="program-day-toggle" data-action="toggle-program-day" data-id="${day.id}" aria-expanded="${state.prefs.expandedProgramDayId === day.id}">
               <span><small>Day ${index + 1}</small><strong>${day.title}</strong><em>${day.exercises.length} exercise${day.exercises.length === 1 ? "" : "s"}</em></span>
@@ -294,8 +300,8 @@ export function editorView(state) {
               </label>
               ${warmUpItemsFor(day).length ? `<button class="glass compact" data-action="add-warmup-exercise" data-id="${day.id}">${svgIcon("plus")} Add</button>` : ""}
             </div>
-            ${warmUpItemsFor(day).length ? `<div class="warmup-list">${warmUpItemsFor(day).map((item) => `
-              <article class="warmup-row">
+            ${warmUpItemsFor(day).length ? `<div class="warmup-list">${warmUpItemsFor(day).map((item, itemIndex) => `
+              <article class="warmup-row" data-reorder-kind="warmup" data-day="${day.id}" data-id="${item.id}">
                 <button class="warmup-remove-button" data-action="remove-warmup-exercise" data-day="${day.id}" data-id="${item.id}" aria-label="Remove warm up exercise" title="Remove warm up exercise">&times;</button>
                 <label>Exercise<input data-action="warmup-name" data-day="${day.id}" data-id="${item.id}" value="${escapeAttribute(item.name)}" placeholder="Warm up exercise"></label>
                 <label>Sets & Reps<input inputmode="text" data-action="warmup-plan" data-day="${day.id}" data-id="${item.id}" value="${escapeAttribute(formatPlan(item.sets, item.reps))}" placeholder="2 x 10, 12"></label>
@@ -307,7 +313,7 @@ export function editorView(state) {
             const id = exercise.id || exercise[0];
             const notes = exercise.tip || exercise[4] || "";
             return `
-            <div class="program-exercise-row">
+            <div class="program-exercise-row" data-reorder-kind="exercise" data-day="${day.id}" data-id="${id}">
               <button class="exercise-remove-button" data-action="remove-day-exercise" data-day="${day.id}" data-id="${id}" aria-label="Remove exercise" title="Remove exercise">&times;</button>
               <label class="program-exercise-name">Exercise<input data-action="program-exercise-name" data-day="${day.id}" data-id="${id}" value="${escapeAttribute(exercise.name || exercise[1] || "")}" placeholder="Exercise name"></label>
               <label class="plan-field">Sets & Reps<input inputmode="text" value="${escapeAttribute(formatPlan(plan.sets, plan.reps))}" data-action="program-exercise-plan" data-day="${day.id}" data-id="${id}" aria-label="Sets and reps" placeholder="3 x 10"></label>
