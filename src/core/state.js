@@ -19,6 +19,8 @@ const DEFAULT_PREFS = {
   exerciseSelectionMode: false,
   selectedProgramExerciseKeys: [],
   confirmExerciseDelete: false,
+  daySelectionMode: false,
+  selectedProgramDayIds: [],
   pdfImportStatus: null
 };
 
@@ -226,6 +228,21 @@ export const store = {
     this.state.program = this.state.program
       .filter((day) => day.id !== id)
       .map((day, index) => ({ ...day, day: index + 1 }));
+    this.state.prefs.selectedProgramDayIds = this.state.prefs.selectedProgramDayIds.filter((dayId) => dayId !== id);
+    if (!this.state.prefs.selectedProgramDayIds.length) this.state.prefs.daySelectionMode = false;
+    await this.saveProgram();
+  },
+  async removeSelectedProgramDays(ids) {
+    const selection = new Set(ids || []);
+    if (!selection.size) return;
+    this.state.program = this.state.program
+      .filter((day) => !selection.has(day.id))
+      .map((day, index) => ({ ...day, day: index + 1 }));
+    this.state.prefs.selectedProgramDayIds = [];
+    this.state.prefs.daySelectionMode = false;
+    this.state.prefs.expandedProgramDayId = selection.has(this.state.prefs.expandedProgramDayId)
+      ? null
+      : this.state.prefs.expandedProgramDayId;
     await this.saveProgram();
   },
   async moveProgramDay(id, delta) {
@@ -414,6 +431,17 @@ export const store = {
     const day = this.state.program.find((item) => item.id === dayId);
     if (!day) return;
     day.warmUpItems = normalizeWarmUpItems(day).filter((item) => item.id !== itemId);
+    day.warmUp = "";
+    await this.saveProgram();
+  },
+  async moveWarmUpExercise(dayId, itemId, delta) {
+    const day = this.state.program.find((item) => item.id === dayId);
+    if (!day) return;
+    day.warmUpItems = normalizeWarmUpItems(day);
+    const index = day.warmUpItems.findIndex((item) => item.id === itemId);
+    const target = index + delta;
+    if (index < 0 || target < 0 || target >= day.warmUpItems.length) return;
+    [day.warmUpItems[index], day.warmUpItems[target]] = [day.warmUpItems[target], day.warmUpItems[index]];
     day.warmUp = "";
     await this.saveProgram();
   },
