@@ -1,7 +1,7 @@
-import { store } from "./core/state.js?v=17";
+import { store } from "./core/state.js?v=18";
 import { parseWorkoutPdf } from "./core/pdf-importer.js?v=1";
 import { nav } from "./ui/components.js?v=5";
-import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=45";
+import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=48";
 
 const app = document.querySelector("#app");
 const splash = document.querySelector("#splash");
@@ -154,10 +154,11 @@ app.addEventListener("change", (event) => {
 });
 
 let swipeDeleteState = null;
+let dayPressState = null;
 
 app.addEventListener("pointerdown", (event) => {
   const row = event.target.closest(".program-exercise-row, .warmup-row");
-  if (!row || event.target.closest("button")) return;
+  if (!row || event.target.closest("button, input, textarea")) return;
   swipeDeleteState = {
     row,
     startX: event.clientX,
@@ -174,6 +175,8 @@ app.addEventListener("pointermove", (event) => {
   swipeDeleteState.moved = true;
   if (deltaX < -44) {
     closeSwipeRows(swipeDeleteState.row);
+    closeManageRows();
+    closeDayManageCards();
     swipeDeleteState.row.classList.add("swipe-open");
   }
   if (deltaX > 32) {
@@ -185,8 +188,52 @@ app.addEventListener("pointerup", () => {
   swipeDeleteState = null;
 }, true);
 
+app.addEventListener("pointerdown", (event) => {
+  const card = event.target.closest(".program-editor-card");
+  if (!card || event.target.closest("button, input, textarea, label, .program-exercise-row, .warmup-row")) return;
+  dayPressState = {
+    card,
+    startX: event.clientX,
+    startY: event.clientY,
+    active: false,
+    used: false,
+    timer: window.setTimeout(() => {
+      closeDayManageCards(card);
+      closeSwipeRows();
+      card.classList.add("day-manage-open");
+      dayPressState.active = true;
+    }, 520)
+  };
+}, true);
+
+app.addEventListener("pointermove", (event) => {
+  if (!dayPressState) return;
+  const deltaX = event.clientX - dayPressState.startX;
+  const deltaY = event.clientY - dayPressState.startY;
+  if (!dayPressState.active && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
+    window.clearTimeout(dayPressState.timer);
+  }
+  if (dayPressState.active && !dayPressState.used && Math.abs(deltaY) > 58 && Math.abs(deltaY) > Math.abs(deltaX)) {
+    moveManagedDay(dayPressState.card, deltaY < 0 ? -1 : 1);
+    dayPressState.used = true;
+  }
+}, true);
+
+app.addEventListener("pointerup", () => {
+  if (dayPressState) {
+    window.clearTimeout(dayPressState.timer);
+    dayPressState = null;
+  }
+}, true);
+
 document.addEventListener("click", (event) => {
-  if (!event.target.closest(".program-exercise-row, .warmup-row")) closeSwipeRows();
+  const row = event.target.closest(".program-exercise-row, .warmup-row");
+  const dayCard = event.target.closest(".program-editor-card");
+  if (!row) {
+    closeSwipeRows();
+    closeManageRows();
+  }
+  if (!dayCard) closeDayManageCards();
 }, true);
 
 app.addEventListener("pointerdown", (event) => {
@@ -382,6 +429,10 @@ function runAction(actionTarget) {
   if (action === "add-library-exercise") addExerciseToDraft(actionTarget.dataset.id);
   if (action === "remove-day-exercise" || action === "remove-warmup-exercise") {
     closeSwipeRows();
+    closeManageRows();
+  }
+  if (action === "delete-program-day" || action === "move-day-up" || action === "move-day-down") {
+    closeDayManageCards();
   }
   handleManagementAction(actionTarget, event);
 }
@@ -392,9 +443,54 @@ function closeSwipeRows(exceptRow = null) {
   });
 }
 
+function closeManageRows(exceptRow = null) {
+  document.querySelectorAll(".program-exercise-row.manage-open, .warmup-row.manage-open").forEach((row) => {
+    if (row !== exceptRow) row.classList.remove("manage-open");
+  });
+}
+
+function closeDayManageCards(exceptCard = null) {
+  document.querySelectorAll(".program-editor-card.day-manage-open").forEach((card) => {
+    if (card !== exceptCard) card.classList.remove("day-manage-open");
+  });
+}
+
+function moveManagedDay(card, delta) {
+  const action = delta < 0 ? "move-day-up" : "move-day-down";
+  const button = card.querySelector(`[data-action="${action}"]`);
+  if (button && !button.disabled) button.click();
+}
+
+function moveManagedRow(row, delta) {
+  const action = row.dataset.reorderKind === "warmup"
+    ? (delta < 0 ? "move-warmup-exercise-up" : "move-warmup-exercise-down")
+    : (delta < 0 ? "move-day-exercise-up" : "move-day-exercise-down");
+  const button = row.querySelector(`[data-action="${action}"]`);
+  if (button && !button.disabled) button.click();
+}
+
 function handleManagementAction(actionTarget, event) {
   const action = actionTarget.dataset.action;
   const id = actionTarget.dataset.id;
+  if (action === "toggle-day-manage") {
+    const card = actionTarget.closest(".program-editor-card");
+    if (card) {
+      closeDayManageCards(card);
+      closeSwipeRows();
+      closeManageRows();
+      card.classList.toggle("day-manage-open");
+    }
+    return;
+  }
+  if (action === "toggle-row-manage") {
+    const row = actionTarget.closest(".program-exercise-row, .warmup-row");
+    if (row) {
+      closeManageRows(row);
+      closeSwipeRows(row);
+      row.classList.toggle("manage-open");
+    }
+    return;
+  }
   if (action === "toggle-exercise-form") store.setPrefs({ showExerciseForm: !store.state.prefs.showExerciseForm });
   if (action === "save-exercise-form") saveExerciseForm(actionTarget.closest("form"));
   if (action === "delete-library-exercise" && window.confirm("Delete this exercise from your Library and program days?")) store.deleteExercise(id);
@@ -412,6 +508,8 @@ function handleManagementAction(actionTarget, event) {
   if (action === "move-day-exercise-down") store.moveExerciseInDay(actionTarget.dataset.day, id, 1);
   if (action === "add-warmup-exercise") store.addWarmUpExercise(id);
   if (action === "remove-warmup-exercise") store.removeWarmUpExercise(actionTarget.dataset.day, id);
+  if (action === "move-warmup-exercise-up") store.moveWarmUpExercise(actionTarget.dataset.day, id, -1);
+  if (action === "move-warmup-exercise-down") store.moveWarmUpExercise(actionTarget.dataset.day, id, 1);
   if (action === "show-warmup-notes") store.setPrefs({ openWarmUpNoteId: id });
   if (action === "remove-warmup-notes") {
     store.updateWarmUpExercise(actionTarget.dataset.day, id, { notes: "" });
