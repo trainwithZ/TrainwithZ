@@ -258,6 +258,7 @@ export function historyView(state) {
 }
 
 export function editorView(state) {
+  const selectedDayIds = state.prefs.selectedProgramDayIds || [];
   return `
     <main class="view">
       <header class="page-head editor-head">
@@ -276,8 +277,14 @@ export function editorView(state) {
           <div><strong>${state.prefs.pdfImportStatus.type === "error" ? "Import needs review" : state.prefs.pdfImportStatus.type === "loading" ? "Reading PDF" : "Workout imported"}</strong><p>${escapeHtml(state.prefs.pdfImportStatus.message)}</p></div>
           ${state.prefs.pdfImportStatus.type !== "loading" ? `<button data-action="clear-pdf-import" aria-label="Dismiss import message">&times;</button>` : ""}
         </section>` : ""}
+      ${state.prefs.daySelectionMode ? `
+        <section class="day-selection-bar">
+          <strong>${selectedDayIds.length} selected</strong>
+          <button data-action="delete-selected-program-days" ${selectedDayIds.length ? "" : "disabled"}>Delete</button>
+          <button data-action="cancel-day-selection">Cancel</button>
+        </section>` : ""}
       <section class="program-editor-list">${state.program.map((day, index) => `
-        <article class="program-editor-card ${state.prefs.expandedProgramDayId === day.id ? "expanded" : "collapsed"}" data-day-card="${day.id}">
+        <article class="program-editor-card ${state.prefs.expandedProgramDayId === day.id ? "expanded" : "collapsed"} ${selectedDayIds.includes(day.id) ? "day-selected" : ""} ${state.prefs.daySelectionMode ? "day-selection-mode" : ""}" data-day-card="${day.id}">
           <button class="day-manage-trigger" data-action="toggle-day-manage" data-id="${day.id}" aria-label="Manage day ${index + 1}" title="Manage day"></button>
           <div class="day-manage-actions">
             <button data-action="delete-program-day" data-id="${day.id}" aria-label="Delete day ${index + 1}">&times;</button>
