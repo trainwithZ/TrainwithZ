@@ -13,15 +13,15 @@
         document.documentElement.dataset.theme = "light";
       }
       document.querySelectorAll('link[href*="src/styles.css?v="]').forEach((node) => {
-        if (!node.href.endsWith("src/styles.css?v=51")) node.remove();
+        if (!node.href.endsWith("src/styles.css?v=58")) node.remove();
       });
       document.querySelectorAll('script[src*="src/app.js?v="]').forEach((node) => {
-        if (!node.src.endsWith("src/app.js?v=57")) node.remove();
+        if (!node.src.endsWith("src/app.js?v=63")) node.remove();
       });
     </script>
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="apple-touch-icon" href="assets/icon-192.png">
-    <link rel="stylesheet" href="src/styles.css?v=51">
+    <link rel="stylesheet" href="src/styles.css?v=58">
     <title>TrainWith Z</title>
   </head>
   <body>
@@ -35,6 +35,6 @@
       <div class="splash-loader"><i></i></div>
     </div>
     <div id="app" class="app-shell" aria-live="polite"></div>
-    <script type="module" src="src/app.js?v=57"></script>
+    <script type="module" src="src/app.js?v=63"></script>
   </body>
 </html>
