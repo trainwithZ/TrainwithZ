@@ -155,6 +155,7 @@ app.addEventListener("change", (event) => {
 
 let swipeDeleteState = null;
 let dayPressState = null;
+let suppressDayToggleClickUntil = 0;
 
 app.addEventListener("pointerdown", (event) => {
   const row = event.target.closest(".program-exercise-row, .warmup-row");
@@ -190,7 +191,8 @@ app.addEventListener("pointerup", () => {
 
 app.addEventListener("pointerdown", (event) => {
   const card = event.target.closest(".program-editor-card");
-  if (!card || event.target.closest("button, input, textarea, label, .program-exercise-row, .warmup-row")) return;
+  if (!card || event.target.closest("input, textarea, label, .program-exercise-row, .warmup-row, .day-manage-trigger, .day-manage-actions")) return;
+  if (event.target.closest("button") && !event.target.closest(".program-day-toggle")) return;
   dayPressState = {
     card,
     startX: event.clientX,
@@ -202,6 +204,7 @@ app.addEventListener("pointerdown", (event) => {
       closeSwipeRows();
       card.classList.add("day-manage-open");
       dayPressState.active = true;
+      suppressDayToggleClickUntil = Date.now() + 900;
     }, 520)
   };
 }, true);
@@ -222,11 +225,17 @@ app.addEventListener("pointermove", (event) => {
 app.addEventListener("pointerup", () => {
   if (dayPressState) {
     window.clearTimeout(dayPressState.timer);
+    if (dayPressState.active) suppressDayToggleClickUntil = Date.now() + 900;
     dayPressState = null;
   }
 }, true);
 
 document.addEventListener("click", (event) => {
+  if (Date.now() < suppressDayToggleClickUntil && event.target.closest(".program-day-toggle")) {
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
   const row = event.target.closest(".program-exercise-row, .warmup-row");
   const dayCard = event.target.closest(".program-editor-card");
   if (!row) {
