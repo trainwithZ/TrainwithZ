@@ -1394,6 +1394,37 @@ textarea { min-height: 78px; padding: 12px; resize: vertical; }
 .bars span, .bars em { color: var(--muted); font-size: .82rem; font-style: normal; }
 
 .program-editor-list { display: grid; gap: 12px; }
+.day-selection-bar {
+  position: sticky;
+  top: calc(env(safe-area-inset-top) + 8px);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 10px;
+  border: 1px solid rgba(124,200,255,.28);
+  border-radius: 8px;
+  background: rgba(246,251,255,.92);
+  box-shadow: var(--shadow);
+}
+.day-selection-bar strong {
+  margin-right: auto;
+  color: var(--text);
+  font-size: .85rem;
+}
+.day-selection-bar button {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  color: var(--soft);
+  background: rgba(20,123,255,.16);
+  font-size: .76rem;
+  font-weight: 800;
+}
+.day-selection-bar button:disabled {
+  opacity: .4;
+}
 .program-editor-card {
   position: relative;
   overflow: visible;
@@ -1456,6 +1487,16 @@ textarea { min-height: 78px; padding: 12px; resize: vertical; }
 }
 .program-editor-card.day-manage-open {
   border-color: rgba(124,200,255,.28);
+}
+.program-editor-card.day-selection-mode {
+  cursor: pointer;
+}
+.program-editor-card.day-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(124,200,255,.36), var(--shadow);
+}
+.program-editor-card.day-selected .program-day-toggle {
+  background: rgba(20,123,255,.08);
 }
 .program-editor-card.day-manage-open .day-manage-actions {
   opacity: 1;
