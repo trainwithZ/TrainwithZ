@@ -1,7 +1,8 @@
-import { store } from "./core/state.js?v=18";
+import { store } from "./core/state.js?v=19";
 import { parseWorkoutPdf } from "./core/pdf-importer.js?v=1";
 import { nav } from "./ui/components.js?v=5";
-import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=46";
+import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=49";
+import { coachView, handleCoachAction, handleCoachForm } from "./features/coach.js?v=1";
 
 const app = document.querySelector("#app");
 const splash = document.querySelector("#splash");
@@ -14,7 +15,8 @@ const views = {
   analytics: analyticsView,
   history: historyView,
   editor: editorView,
-  weekly: weeklyView
+  weekly: weeklyView,
+  coach: coachView
 };
 
 store.subscribe(render);
@@ -58,9 +60,28 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const clickedDayCard = event.target.closest(".program-editor-card");
+  if (
+    store.state.prefs.daySelectionMode &&
+    clickedDayCard &&
+    !event.target.closest(".day-manage-trigger, .day-manage-actions, input, textarea, label")
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleSelectedProgramDay(clickedDayCard.dataset.dayCard);
+    return;
+  }
+
   const actionTarget = event.target.closest("[data-action]");
   if (!actionTarget) return;
   const action = actionTarget.dataset.action;
+  if (handleCoachAction(actionTarget, store)) return;
+  if (store.state.prefs.daySelectionMode && action === "toggle-program-day") {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleSelectedProgramDay(actionTarget.dataset.id);
+    return;
+  }
 
   if (action === "start-workout") {
     if (store.state.draft) store.setRoute("workout");
@@ -100,6 +121,25 @@ document.addEventListener("click", (event) => {
   if (action === "add-library-exercise") addExerciseToDraft(actionTarget.dataset.id);
   handleManagementAction(actionTarget, event);
 });
+
+app.addEventListener("click", (event) => {
+  const clickedDayCard = event.target.closest(".program-editor-card");
+  if (Date.now() < suppressDayToggleClickUntil && clickedDayCard) {
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
+  if (
+    !store.state.prefs.daySelectionMode ||
+    !clickedDayCard ||
+    event.target.closest(".day-manage-trigger, .day-manage-actions, input, textarea, label, .day-selection-bar")
+  ) {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  toggleSelectedProgramDay(clickedDayCard.dataset.dayCard);
+}, true);
 
 app.addEventListener("input", (event) => {
   const target = event.target.closest("[data-action]");
@@ -154,7 +194,8 @@ app.addEventListener("change", (event) => {
 });
 
 let swipeDeleteState = null;
-let longPressState = null;
+let dayPressState = null;
+let suppressDayToggleClickUntil = 0;
 
 app.addEventListener("pointerdown", (event) => {
   const row = event.target.closest(".program-exercise-row, .warmup-row");
@@ -165,40 +206,18 @@ app.addEventListener("pointerdown", (event) => {
     startY: event.clientY,
     moved: false
   };
-  longPressState = {
-    row,
-    startX: event.clientX,
-    startY: event.clientY,
-    active: false,
-    used: false,
-    timer: window.setTimeout(() => {
-      closeManageRows(row);
-      closeSwipeRows(row);
-      row.classList.add("manage-open");
-      longPressState.active = true;
-    }, 520)
-  };
 }, true);
 
 app.addEventListener("pointermove", (event) => {
   if (!swipeDeleteState) return;
   const deltaX = event.clientX - swipeDeleteState.startX;
   const deltaY = event.clientY - swipeDeleteState.startY;
-  if (longPressState && !longPressState.active && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
-    window.clearTimeout(longPressState.timer);
-  }
-  if (longPressState?.active && !longPressState.used && Math.abs(deltaY) > 58 && Math.abs(deltaY) > Math.abs(deltaX)) {
-    moveManagedRow(longPressState.row, deltaY < 0 ? -1 : 1);
-    longPressState.used = true;
-    swipeDeleteState = null;
-    return;
-  }
   if (Math.abs(deltaX) < 18 || Math.abs(deltaX) < Math.abs(deltaY)) return;
   swipeDeleteState.moved = true;
-  if (longPressState) window.clearTimeout(longPressState.timer);
   if (deltaX < -44) {
     closeSwipeRows(swipeDeleteState.row);
     closeManageRows();
+    closeDayManageCards();
     swipeDeleteState.row.classList.add("swipe-open");
   }
   if (deltaX > 32) {
@@ -207,27 +226,67 @@ app.addEventListener("pointermove", (event) => {
 }, true);
 
 app.addEventListener("pointerup", () => {
-  if (longPressState) {
-    window.clearTimeout(longPressState.timer);
-    longPressState = null;
-  }
   swipeDeleteState = null;
 }, true);
 
+app.addEventListener("pointerdown", (event) => {
+  const card = event.target.closest(".program-editor-card");
+  if (!card || event.target.closest("input, textarea, label, .program-exercise-row, .warmup-row, .day-manage-trigger, .day-manage-actions")) return;
+  if (event.target.closest("button") && !event.target.closest(".program-day-toggle")) return;
+  dayPressState = {
+    card,
+    startX: event.clientX,
+    startY: event.clientY,
+    active: false,
+    used: false,
+    timer: window.setTimeout(() => {
+      closeDayManageCards(card);
+      closeSwipeRows();
+      const dayId = card.dataset.dayCard;
+      store.setPrefs({
+        daySelectionMode: true,
+        selectedProgramDayIds: [...new Set([...(store.state.prefs.selectedProgramDayIds || []), dayId])]
+      });
+      dayPressState.active = true;
+      suppressDayToggleClickUntil = Date.now() + 900;
+    }, 430)
+  };
+}, true);
+
+app.addEventListener("pointermove", (event) => {
+  if (!dayPressState) return;
+  const deltaX = event.clientX - dayPressState.startX;
+  const deltaY = event.clientY - dayPressState.startY;
+  if (!dayPressState.active && (Math.abs(deltaX) > 28 || Math.abs(deltaY) > 28)) {
+    window.clearTimeout(dayPressState.timer);
+  }
+  if (dayPressState.active && !dayPressState.used && Math.abs(deltaY) > 58 && Math.abs(deltaY) > Math.abs(deltaX)) {
+    moveManagedDay(dayPressState.card, deltaY < 0 ? -1 : 1);
+    dayPressState.used = true;
+  }
+}, true);
+
+app.addEventListener("pointerup", () => {
+  if (dayPressState) {
+    window.clearTimeout(dayPressState.timer);
+    if (dayPressState.active) suppressDayToggleClickUntil = Date.now() + 900;
+    dayPressState = null;
+  }
+}, true);
+
 document.addEventListener("click", (event) => {
-  const row = event.target.closest(".program-exercise-row, .warmup-row");
-  if (row && !event.target.closest("button, input, textarea")) {
+  if (Date.now() < suppressDayToggleClickUntil && event.target.closest(".program-day-toggle")) {
     event.preventDefault();
     event.stopPropagation();
-    closeManageRows(row);
-    closeSwipeRows(row);
-    row.classList.toggle("manage-open");
     return;
   }
+  const row = event.target.closest(".program-exercise-row, .warmup-row");
+  const dayCard = event.target.closest(".program-editor-card");
   if (!row) {
     closeSwipeRows();
     closeManageRows();
   }
+  if (!dayCard) closeDayManageCards();
 }, true);
 
 app.addEventListener("pointerdown", (event) => {
@@ -248,6 +307,7 @@ app.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (form.dataset.form === "exercise") await saveExerciseForm(form);
   if (form.dataset.form === "inbody") await saveInBodyForm(form);
+  if (form.dataset.form?.startsWith("coach-")) handleCoachForm(form, store);
 });
 
 async function saveExerciseForm(form) {
@@ -385,6 +445,10 @@ function bindInteractiveControls() {
 
 function runAction(actionTarget) {
   const action = actionTarget.dataset.action;
+  if (store.state.prefs.daySelectionMode && action === "toggle-program-day") {
+    toggleSelectedProgramDay(actionTarget.dataset.id);
+    return;
+  }
   if (action === "start-workout") {
     if (store.state.draft) store.setRoute("workout");
     else store.startWorkout();
@@ -425,6 +489,9 @@ function runAction(actionTarget) {
     closeSwipeRows();
     closeManageRows();
   }
+  if (action === "delete-program-day" || action === "move-day-up" || action === "move-day-down") {
+    closeDayManageCards();
+  }
   handleManagementAction(actionTarget, event);
 }
 
@@ -440,6 +507,28 @@ function closeManageRows(exceptRow = null) {
   });
 }
 
+function closeDayManageCards(exceptCard = null) {
+  document.querySelectorAll(".program-editor-card.day-manage-open").forEach((card) => {
+    if (card !== exceptCard) card.classList.remove("day-manage-open");
+  });
+}
+
+function moveManagedDay(card, delta) {
+  const action = delta < 0 ? "move-day-up" : "move-day-down";
+  const button = card.querySelector(`[data-action="${action}"]`);
+  if (button && !button.disabled) button.click();
+}
+
+function toggleSelectedProgramDay(dayId) {
+  const selected = new Set(store.state.prefs.selectedProgramDayIds || []);
+  if (selected.has(dayId)) selected.delete(dayId);
+  else selected.add(dayId);
+  store.setPrefs({
+    daySelectionMode: selected.size > 0,
+    selectedProgramDayIds: [...selected]
+  });
+}
+
 function moveManagedRow(row, delta) {
   const action = row.dataset.reorderKind === "warmup"
     ? (delta < 0 ? "move-warmup-exercise-up" : "move-warmup-exercise-down")
@@ -451,6 +540,36 @@ function moveManagedRow(row, delta) {
 function handleManagementAction(actionTarget, event) {
   const action = actionTarget.dataset.action;
   const id = actionTarget.dataset.id;
+  if (action === "toggle-day-manage") {
+    const card = actionTarget.closest(".program-editor-card");
+    if (card) {
+      closeDayManageCards(card);
+      closeSwipeRows();
+      closeManageRows();
+      card.classList.toggle("day-manage-open");
+    }
+    return;
+  }
+  if (action === "cancel-day-selection") {
+    store.setPrefs({ daySelectionMode: false, selectedProgramDayIds: [] });
+    return;
+  }
+  if (action === "delete-selected-program-days") {
+    const selected = store.state.prefs.selectedProgramDayIds || [];
+    if (selected.length && window.confirm(`Delete ${selected.length} selected workout${selected.length === 1 ? "" : "s"}?`)) {
+      store.removeSelectedProgramDays(selected);
+    }
+    return;
+  }
+  if (action === "toggle-row-manage") {
+    const row = actionTarget.closest(".program-exercise-row, .warmup-row");
+    if (row) {
+      closeManageRows(row);
+      closeSwipeRows(row);
+      row.classList.toggle("manage-open");
+    }
+    return;
+  }
   if (action === "toggle-exercise-form") store.setPrefs({ showExerciseForm: !store.state.prefs.showExerciseForm });
   if (action === "save-exercise-form") saveExerciseForm(actionTarget.closest("form"));
   if (action === "delete-library-exercise" && window.confirm("Delete this exercise from your Library and program days?")) store.deleteExercise(id);

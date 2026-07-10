@@ -12,6 +12,7 @@ export const icon = {
   swap: "M7 7h11l-3-3 1.4-1.4L22 8l-5.6 5.4L15 12l3-3H7V7Zm10 10H6l3 3-1.4 1.4L2 16l5.6-5.4L9 12l-3 3h11v2Z",
   skip: "M5 5l8 7-8 7V5Zm10 0h3v14h-3V5Z",
   camera: "M8 6l1.5-2h5L16 6h4v14H4V6h4Zm4 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"
+  ,profile: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0H5Z"
 };
 
 export function svgIcon(name) {
@@ -37,7 +38,8 @@ export function nav(route) {
     ["editor", "Workouts", "train"],
     ["start", "Start", "plus"],
     ["analytics", "Progress", "chart"],
-    ["history", "History", "history"]
+    ["history", "History", "history"],
+    ["coach", "Clients", "profile"]
   ];
   return `<nav class="bottom-nav" aria-label="Primary">${items.map(([id, label, glyph]) => `
     <button class="${route === id || (id === "editor" && ["workout", "library"].includes(route)) ? "active" : ""} ${id === "start" ? "nav-start" : ""}" ${id === "start" ? 'data-action="start-workout"' : `data-route="${id}"`} aria-label="${label}">
