@@ -21,8 +21,7 @@ export function homeView(state) {
         <div class="dashboard-title">
           <span>Good ${greeting()},</span>
           <div class="brand-heading">
-            <img src="assets/trainwith-z-mark.svg" alt="TrainWith Z logo">
-            <h1>TrainWith Z <b>&hearts;</b></h1>
+            ${brandLogo()}
           </div>
         </div>
 
@@ -220,6 +219,39 @@ function greeting() {
   if (hour < 12) return "Morning";
   if (hour < 17) return "Afternoon";
   return "Evening";
+}
+
+function brandLogo() {
+  return `
+    <div class="brand-logo" role="img" aria-label="TrainWith Z">
+      <svg viewBox="0 0 560 150" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="brandZ" x1="40" y1="32" x2="132" y2="118" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#7CC8FF"/>
+            <stop offset=".52" stop-color="#147BFF"/>
+            <stop offset="1" stop-color="#7CC8FF"/>
+          </linearGradient>
+          <linearGradient id="brandPulse" x1="10" y1="78" x2="162" y2="78" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#147BFF" stop-opacity="0"/>
+            <stop offset=".22" stop-color="#7CC8FF"/>
+            <stop offset=".5" stop-color="#E6F2FF"/>
+            <stop offset=".78" stop-color="#7CC8FF"/>
+            <stop offset="1" stop-color="#147BFF" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <g transform="translate(4 7)">
+          <path d="M27 31a67 67 0 0 1 98-4" fill="none" stroke="#147BFF" stroke-width="4.5" stroke-linecap="round" opacity=".82"/>
+          <path d="M130 44a67 67 0 0 1-102 82" fill="none" stroke="#147BFF" stroke-width="4.5" stroke-linecap="round" opacity=".48"/>
+          <circle cx="134" cy="33" r="5.5" fill="#7CC8FF"/>
+          <circle cx="22" cy="120" r="5.5" fill="#7CC8FF"/>
+          <path d="M42 42h76L83 75h42l-29 25H59l35-34H33l9-24Z" fill="url(#brandZ)"/>
+          <path d="M45 125h71l10-25H53l-18 25h10Z" fill="url(#brandZ)"/>
+          <path d="M10 82h42l8-15 11 45 11-61 12 46 8-15h50" fill="none" stroke="url(#brandPulse)" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+        <text class="brand-word" x="165" y="96" font-size="56" font-family="Inter, Segoe UI, Arial, sans-serif" font-weight="760">TrainWith</text>
+        <text class="brand-word" x="428" y="96" font-size="60" font-family="Inter, Segoe UI, Arial, sans-serif" font-weight="790">Z</text>
+      </svg>
+    </div>`;
 }
 
 function sameDay(a, b) {

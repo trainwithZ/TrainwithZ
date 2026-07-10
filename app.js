@@ -1,7 +1,7 @@
 import { store } from "./core/state.js?v=2";
 import { nav } from "./ui/components.js?v=2";
 import { PROGRAM } from "./data/program.js?v=1";
-import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=5";
+import { analyticsView, editorView, historyView, homeView, libraryView, weeklyView, workoutView } from "./features/views.js?v=24";
 
 const app = document.querySelector("#app");
 

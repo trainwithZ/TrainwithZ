@@ -19,8 +19,6 @@ const DEFAULT_PREFS = {
   exerciseSelectionMode: false,
   selectedProgramExerciseKeys: [],
   confirmExerciseDelete: false,
-  daySelectionMode: false,
-  selectedProgramDayIds: [],
   pdfImportStatus: null
 };
 
@@ -228,21 +226,6 @@ export const store = {
     this.state.program = this.state.program
       .filter((day) => day.id !== id)
       .map((day, index) => ({ ...day, day: index + 1 }));
-    this.state.prefs.selectedProgramDayIds = this.state.prefs.selectedProgramDayIds.filter((dayId) => dayId !== id);
-    if (!this.state.prefs.selectedProgramDayIds.length) this.state.prefs.daySelectionMode = false;
-    await this.saveProgram();
-  },
-  async removeSelectedProgramDays(ids) {
-    const selection = new Set(ids || []);
-    if (!selection.size) return;
-    this.state.program = this.state.program
-      .filter((day) => !selection.has(day.id))
-      .map((day, index) => ({ ...day, day: index + 1 }));
-    this.state.prefs.selectedProgramDayIds = [];
-    this.state.prefs.daySelectionMode = false;
-    this.state.prefs.expandedProgramDayId = selection.has(this.state.prefs.expandedProgramDayId)
-      ? null
-      : this.state.prefs.expandedProgramDayId;
     await this.saveProgram();
   },
   async moveProgramDay(id, delta) {
